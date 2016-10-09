@@ -253,7 +253,8 @@ int main(int argc, char **argv) {
 
   do {
     getWifiStatus(&nl, &w);  
-    printf("Interface: %s | signal: %d dB | txrate: %.1f MBit/s\n", w.ifname, w.signal, (float)w.txrate/10);
+    printf("Interface: %s | signal: %d dB | txrate: %.1f MBit/s\n",
+           w.ifname, w.signal, (float)w.txrate/10);
     sleep(1);
   } while(keepRunning);
 

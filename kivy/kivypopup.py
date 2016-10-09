@@ -16,9 +16,10 @@ BUTTON_TEXTURE = "atlas://data/images/defaulttheme/vkeyboard_background"
 
 
 class Pop(ModalView):
-    def __init__(self, title, txt, callback=None,
-                 alpha=0.5, width=None, height=None, **kwargs):
+    def __init__(self, title, txt, callback=None, alpha=0.5,
+                 width=None, height=None, **kwargs):
         super(Pop, self).__init__(**kwargs)
+        
         self.callback = callback
         self.auto_dismiss = False
         self.background = "dlgback_green.png"
@@ -26,17 +27,19 @@ class Pop(ModalView):
         self.size_hint = (None, None)
         self.preferred_width = width
         self.preferred_height = height
+        
         if self.preferred_width:
             self.width = self.preferred_width
         elif Window.width > 500:  # Big screen?
             self.width = 0.7*Window.width
         else:
             self.width = Window.width-2
-
+    
         self.playout = BoxLayout(orientation='vertical',
-                                 padding=["2dp", "10dp", "2dp", "5dp"],
+                                 padding=["2dp", "5dp",
+                                          "2dp", "5dp"],
                                  spacing="5dp")
-
+    
         self.title = Label(size_hint_y=None,
                            text_size=(self.width-dp(20), None),
                            text=title,
@@ -44,57 +47,66 @@ class Pop(ModalView):
                            font_size = "16sp",
                            color=(0, 1, 1, 1),
                            markup=True)
-
+    
         self.separator = BoxLayout(size_hint_y=None, height="1dp")
-
+    
         self.pscroll = ScrollView(do_scroll_x=False)
-
-        self.plabel = Label(size_hint_y=None,
+    
+        self.content = Label(size_hint_y=None,
                             text=txt,
                             halign='justify',
                             font_size="16sp",
                             markup=True,
                             text_size=(self.width-dp(20), None))
-
+    
         self.pbutton = Button(text='Close',
                               size_hint_y=None, height="25dp",
                               background_normal=
             "atlas://data/images/defaulttheme/vkeyboard_background")
         self.pbutton.bind(on_release=self.close)
-
+    
         self.add_widget(self.playout)
         self.playout.add_widget(self.title)
         self.playout.add_widget(self.separator)
         self.playout.add_widget(self.pscroll)
-        self.pscroll.add_widget(self.plabel)
+        self.pscroll.add_widget(self.content)
         self.playout.add_widget(self.pbutton)
+        
         self.title.bind(texture_size=self.update_height)
-        self.plabel.bind(texture_size=self.update_height)
+        self.content.bind(texture_size=self.update_height)
+    
         with self.separator.canvas.before:
             Color(0, 0.7, 0, 1)
             self.rect = Rectangle(pos=self.separator.pos,
                                   size=self.separator.size)
-        self.separator.bind(pos=self.update_sep, size=self.update_sep)
-        Window.bind(size=self.redraw)
+    
+        self.separator.bind(pos=self.update_sep,
+                            size=self.update_sep)
+    
+        Window.bind(size=self.update_width)
+    
         self.open()
 
-    def redraw(self, *args):
+    def update_width(self, *args):
+        # hack to resize dark background on window resize 
         self.center = Window.center
         self._window = None
         self._window = Window
+        
         if self.preferred_width:
             self.width = self.preferred_width        
         elif Window.width > 500:  # Big screen?
             self.width = 0.7*Window.width
         else:
             self.width = Window.width-2
+    
         self.title.text_size = (self.width - dp(20), None)
-        self.plabel.text_size = (self.width - dp(20), None)
+        self.content.text_size = (self.width - dp(20), None)
                   
     def update_height(self, *args):
         self.title.height = self.title.texture_size[1]
-        self.plabel.height = self.plabel.texture_size[1]
-        temp = self.title.height+self.plabel.height+dp(56)
+        self.content.height = self.content.texture_size[1]
+        temp = self.title.height+self.content.height+dp(56)
         if self.preferred_height:
             self.height = self.preferred_height
         elif temp > Window.height-dp(40):
@@ -135,4 +147,5 @@ class TestApp(App):
     def callback(self):
         exit()
 
-TestApp().run()
+if __name__ == "__main__":
+    TestApp().run()
