@@ -11,20 +11,20 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <errno.h>              //errno definitions
-#include <netinet/in.h>         //sockaddr_in
+#include <errno.h>              
 #include <netlink/netlink.h>    //lots of netlink functions
 #include <netlink/genl/genl.h>  //genl_connect, genlmsg_put
 #include <netlink/genl/family.h>
 #include <netlink/genl/ctrl.h>  //genl_ctrl_resolve
 #include <linux/nl80211.h>      //NL80211 definitions
 
-const static char ESC   = 0x1B;
+
 static volatile int keepRunning = 1;
 
 void ctrl_c_handler(int dummy) {
     keepRunning = 0;
 }
+
 
 typedef struct {
   int id;
@@ -51,14 +51,14 @@ static struct nla_policy stats_policy[NL80211_STA_INFO_MAX + 1] = {
   [NL80211_STA_INFO_LLID] = { .type = NLA_U16 },
   [NL80211_STA_INFO_PLID] = { .type = NLA_U16 },
   [NL80211_STA_INFO_PLINK_STATE] = { .type = NLA_U8 },
- };
+};
 
 static struct nla_policy rate_policy[NL80211_RATE_INFO_MAX + 1] = {
   [NL80211_RATE_INFO_BITRATE] = { .type = NLA_U16 },
   [NL80211_RATE_INFO_MCS] = { .type = NLA_U8 },
   [NL80211_RATE_INFO_40_MHZ_WIDTH] = { .type = NLA_FLAG },
   [NL80211_RATE_INFO_SHORT_GI] = { .type = NLA_FLAG },
- };
+};
 
 
 static int initNl80211(Netlink* nl, Wifi* w);
@@ -162,12 +162,12 @@ static int getWifiInfo_callback(struct nl_msg *msg, void *arg) {
    */
   
   if (!tb[NL80211_ATTR_STA_INFO]) {
-    fprintf(stderr, "sta stats missing!"); return NL_SKIP;
+    fprintf(stderr, "sta stats missing!\n"); return NL_SKIP;
   }
 
   if (nla_parse_nested(sinfo, NL80211_STA_INFO_MAX,
                        tb[NL80211_ATTR_STA_INFO], stats_policy)) {
-    fprintf(stderr, "failed to parse nested attributes!"); return NL_SKIP;
+    fprintf(stderr, "failed to parse nested attributes!\n"); return NL_SKIP;
   }
   
   if (sinfo[NL80211_STA_INFO_SIGNAL]) {
@@ -177,10 +177,10 @@ static int getWifiInfo_callback(struct nl_msg *msg, void *arg) {
   if (sinfo[NL80211_STA_INFO_TX_BITRATE]) {  
     if (nla_parse_nested(rinfo, NL80211_RATE_INFO_MAX,
                          sinfo[NL80211_STA_INFO_TX_BITRATE], rate_policy)) {
-      fprintf(stderr, "failed to parse nested rate attributes!"); } 
+      fprintf(stderr, "failed to parse nested rate attributes!\n"); } 
     else {
       if (rinfo[NL80211_RATE_INFO_BITRATE]) {
-        ((Wifi*)arg)->txrate = nla_get_u16(rinfo[NL80211_RATE_INFO_BITRATE])/10 >> 3;
+        ((Wifi*)arg)->txrate = nla_get_u16(rinfo[NL80211_RATE_INFO_BITRATE]);
       } 
     }
   }
@@ -253,12 +253,15 @@ int main(int argc, char **argv) {
 
   do {
     getWifiStatus(&nl, &w);  
-    printf("Interface: %s | signal: %d dB | txrate: %d MB/s\n", w.ifname, w.signal, w.txrate);
+    printf("Interface: %s | signal: %d dB | txrate: %.1f MBit/s\n", w.ifname, w.signal, (float)w.txrate/10);
     sleep(1);
   } while(keepRunning);
 
-  printf("Exiting safely...\n");
-  system("pause");
-
+  printf("\nExiting gracefully... ");
+  nl_cb_put(nl.cb1);
+  nl_cb_put(nl.cb2);
+  nl_close(nl.socket);
+  nl_socket_free(nl.socket);
+  printf("OK\n");
   return 0;
 }
