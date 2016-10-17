@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [ $# -eq 0 ]
+then
+  echo "No message supplied. Using current date."
+  git commit -a -m "Automatic commit $(date)" 
+else
+  str="'$*'"
+  echo "Message: $str"
+  bash -c "git commit -a -m ${str}"
+fi
+git push origin master

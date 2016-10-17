@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [ $# -eq 0 ]
+then
+  echo "No message supplied. Using current date."
+  hg commit -m "Automatic commit $(date)" 
+else
+  str="'$*'"
+  echo "Message: $str"
+  bash -c "hg commit -m ${str}"
+fi
+hg push
