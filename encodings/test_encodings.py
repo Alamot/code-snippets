@@ -180,7 +180,7 @@ def write_encodings(filename, line_number):
                 c += 1
             except Exception:
                 _, err, _ = sys.exc_info()
-                print("Exception in processing the " + k + " encoding.")
+                print("Exception in processing the " + enc + " encoding.")
                 print(err)
                 
     print(str(c) + " out of " + str(len(data.keys())) +
