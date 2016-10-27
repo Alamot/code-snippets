@@ -1,21 +1,21 @@
 #!/usr/bin/env python
 '''
-********************************************************************
-* Description: This tool can help you determine the character      *
-*              encoding of a text file by converting one line from *
-*              the file to every(?) possible character encoding.   *
-*              It writes the converted lines to a new text file    *
-*              using the same filename but appending the           *
-*              extension '.encodings' to it.                       *
-*              You have to examine this file visually to find the  *
-*              correct encoding.                                   *
-*                                                                  *
-* Usage      : test_encodings.py filename [number of line to test] *
-*                                                                  *
-* Licence    : Public Domain.                                      *
-*                                                                  *
-* Author     : Antonios Tsolis (2016)                              *
-********************************************************************
+*******************************************************************************
+ Description: This tool can help you determine the character
+               encoding of a text file by converting one line from
+               the file to every(?) possible character encoding.
+               It writes the converted lines to a new text file
+               using the same filename but appending the
+               extension '.encodings' to it. 
+               You have to examine this file visually to find the  
+               correct encoding.                                   
+                                                                   
+  Usage      : test_encodings.py filename [number of line to test] 
+                                                                   
+  Licence    : Public Domain.                                      
+                                                                   
+  Author     : Antonios Tsolis (2016)                              
+*******************************************************************************
 '''
 
 import io
@@ -133,46 +133,51 @@ encs = {
 }
 
 
-def write_encodings(filename, line_number):
+def write_encodings(filename, line_number, final_encoding):
     # To ensure that we cover as many as possible encodings,
-    # we take the union of our predefined encodings and the
-    # values of encodings.aliases.aliases
+    # we take the union between our predefined encoding set and the
+    # set of the values from the encodings.aliases.aliases.
     encodings = encs.union(set(aliases.values()))
-    encodings.remove("quopri_codec")
-    
+
     data = dict()
 
+    # Read line from file
     try:
         with io.open(filename, "rb") as f:
             lines = f.readlines()
             line = lines[line_number-1]
-            print("Processing line number: " + str(line_number))
+            print("\nProcessing line number: " + str(line_number))
             if len(line) < 3:
                 print("!!!Warning!!!: Possible empty line.")
+            print("")
     except Exception:
         _, err, _ = sys.exc_info()
         print("Error reading " + filename)
         print(err)
         sys.exit(1)
 
+    # Decode it using every possible encoding
     for enc in encodings:
         try:
             data[enc] = line.decode(enc)
         except Exception:
-            continue
+            _, err, _ = sys.exc_info()
+            print("Cannot decode using " + enc)
+            # print(err)
 
+    # We write the results in a new utf-8 text file
+    # We use the same filename + an '.encodings' extension
     fpath = os.path.abspath(filename)
-
     newfilename = fpath + '.encodings'
-    print("Writing tested encodings in " + newfilename)
-    
+    print("\nWriting successfully tested encodings in " + newfilename)
+
     with open(newfilename, 'w') as out:
         c = 0
         for enc in sorted(data.keys()):
             try:
                 out.write("%-20s" % enc)
                 if (sys.version_info[0] < 3):
-                    line = data[enc].encode('utf_8')
+                    line = data[enc].encode(final_encoding)
                 else:
                     line = data[enc]
                 out.write(line)
@@ -180,11 +185,11 @@ def write_encodings(filename, line_number):
                 c += 1
             except Exception:
                 _, err, _ = sys.exc_info()
-                print("Exception in processing the " + enc + " encoding.")
-                print(err)
-                
-    print(str(c) + " out of " + str(len(data.keys())) +
-          " tested encodings were written.")
+                print("Cannot encode " + enc + " to " + final_encoding)
+                # print(err)
+
+    print("\n" + str(c) + " out of " + str(len(encodings)) +
+          " tested encodings were written.\n")
 
 
 if __name__ == '__main__':
@@ -195,4 +200,4 @@ if __name__ == '__main__':
         line_number = int(sys.argv[2])
     else:
         line_number = 1
-    write_encodings(sys.argv[1], line_number)
+    write_encodings(sys.argv[1], line_number, 'utf_8')
