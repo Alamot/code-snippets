@@ -1,0 +1,187 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+'''
+**************************************************************
+* Description: A transparent gtk GUI with buttons bound to   *
+*              commands. It can be used as a logoff/shutdown *
+*              manager for windows managers that lack one.   *
+*                                                            *
+* Licence    : Public Domain.                                *
+*                                                            *
+* Author     : Antonios Tsolis (2016)                        *
+**************************************************************
+'''
+
+import os
+import gtk
+import cairo
+from math import pi
+from collections import OrderedDict
+
+FULL_SCREEN = False
+
+
+# We define a get_resource_path function to help us find
+# the path of our icons in the system:
+def get_resource_path(rel_path):
+    dir_of_py_file = os.path.dirname(__file__)
+    rel_path_to_resource = os.path.join(dir_of_py_file, rel_path)
+    abs_path_to_resource = os.path.abspath(rel_path_to_resource)
+    return abs_path_to_resource
+
+
+class SystemDialog (gtk.Window):
+    def __init__(self):
+        super(SystemDialog, self).__init__()
+
+        # We define a dictionary with button label-command key-value
+        # pairs. The reason we use an OrderedDict is that in python
+        # the simple dict does not keep the order of the keys and we
+        # do not want our buttons to appear in arbitrary order.
+        # Keep in mind that you have to edit the commands according
+        # to your system and your needs.
+        self.actions = OrderedDict([
+            ("Cancel", None),
+            ("Lock", "slock &"),
+            ("Restart WM", "sudo killall gnome-shell;gnome-shell &"),
+            ("Sleep", "sudo pm-suspend &"),
+            ("Hibernate", "sudo pm-hibernate &"),
+            ("Sleep + Hibernate", "sudo pm-suspend-hybrid &"),
+            ("Logout", "gnome-session-quit &"),
+            ("Reboot", "sudo reboot &"),
+            ("Shutdown", "sudo poweroff &")])
+
+        # We need some small vboxes to align vertically each icon with
+        # its label.  Οur clickable "buttons" will be the event_boxes which
+        # will contain the small_vboxes.
+        self.small_vboxes = {}
+        self.event_boxes = {}
+        self.labels = {}
+
+        # If the system supports it, we will use an rgba colormap
+        # (i.e. one with an alpha channel).
+        # Note: you need a compositor manager, like compton or xcompmgr
+        # for example, in order for transperancy to work.
+        self.screen = self.get_screen()
+        self.rgba_colormap = self.screen.get_rgba_colormap()
+        if (self.rgba_colormap is not None and self.screen.is_composited()):
+            self.set_colormap(self.rgba_colormap)
+
+        # We make our window undecorated, paintable
+        # and we keep it on top.
+        self.set_decorated(False)
+        self.set_keep_above(True)
+        self.set_app_paintable(True)
+
+        # Some more settings, mostly for the fullscreen option. The function
+        # set_border_width sets the size of the outer margin. Adjust it to
+        # your liking.
+        if FULL_SCREEN:
+            self.set_border_width(150)
+            self.set_size_request(self.screen.get_width(),
+                                  self.screen.get_height())
+            self.set_position(gtk.WIN_POS_CENTER)
+        else:
+            self.set_border_width(5)
+
+        # We define one vertical box and three horizontal boxes.
+        # The vertical box will contain and align vertical the 3
+        # horizontal boxes while each horizontal box while keep and align
+        # horizontally 3 of our buttons. Therefore, in the end, we will
+        # have a nice 3x3 buttons square
+        self.vbox = gtk.VBox(True, 20)
+        self.hboxes = [gtk.HBox(True, 5), gtk.HBox(True, 5), gtk.HBox(True, 5)]
+
+        # Now, we are ready to create our "buttons". We load each icon and
+        # we pack/align it vertically with its label inside a small_vbox.
+        # We add each of the small_vboxes to an event_box. We connect their
+        # click with a callback event handler and we pack them inside the
+        # empty horizontal boxes (3 "buttons" in each horizontal box).
+        # Finally, to make our "buttons" transparent, we have to connect
+        # their expose-event with our self.expose function and to set them
+        # as paintable.
+        c = 0
+        boxIndex = 0
+        for key in self.actions.keys():
+            # Load image
+            ico = gtk.Image()
+            ico.set_from_file(get_resource_path("images/"+key+".png"))
+            # Load label
+            self.labels[key] = gtk.Label(key)
+            self.labels[key].modify_fg(gtk.STATE_NORMAL,
+                                       gtk.gdk.color_parse('#FFFFFF'))
+            # Pack/align image and label vertically
+            self.small_vboxes[key] = gtk.VBox(False, 3)
+            self.small_vboxes[key].pack_start(ico)
+            self.small_vboxes[key].pack_start(self.labels[key])
+            # Create transparent "buttons" (event_boxes)
+            self.event_boxes[key] = gtk.EventBox()
+            self.event_boxes[key].add(self.small_vboxes[key])
+            self.event_boxes[key].connect('button-release-event',
+                                          self.callback, key)
+            self.event_boxes[key].connect('expose-event', self.expose)
+            self.event_boxes[key].set_app_paintable(True)
+            # Pack/align up to 3 "buttons" (event_boxes) horizontally
+            self.hboxes[boxIndex].pack_start((self.event_boxes[key]))
+            c += 1
+            if not (c % 3):
+                boxIndex += 1
+
+        # And now, let's pack the horizontal boxes inside the vertical box and
+        # the vertical box inside our window. Do not forget to show all our
+        # widgets with self.show_all()
+        for hbox in self.hboxes:
+            self.vbox.pack_start(hbox, False, False, 0)
+        self.add(self.vbox)
+        self.show_all()
+
+        # Finally, we connect some events for our window with
+        # their callback handlers:
+        # For our window to be transparent
+        self.connect('expose-event', self.expose)
+        # If our window is destroyed, call self.callback (to exit)
+        self.connect("delete-event", self.callback)
+        # If a key is pressed, call self.key_press_event
+        self.connect("key-press-event", self.key_press_event)
+
+        # If our window is not fullscreen, we can move it where we want it.
+        # Let's put it on the bottom right corner of the screen.
+        if not FULL_SCREEN:
+            w, h = self.get_size()
+            self.move(gtk.gdk.screen_width() - w,
+                      gtk.gdk.screen_height() - h - 22)
+
+    # This is the function where the magic of transparency happens. Using
+    # the function set_source_rgba(r, g, b, a) you can set the color and the
+    # opacity of our window.
+    def expose(self, widget, event):
+        cr = widget.get_window().cairo_create()
+        cr.set_source_rgba(0, 0, 0, 0.65)
+        cr.set_operator(cairo.OPERATOR_SOURCE)
+        cr.paint()
+        cr.set_operator(cairo.OPERATOR_OVER)
+        return False
+
+    # This is the our keyboard callback/event handler function.
+    # If the user has pressed Escape, we quit.
+    def key_press_event(self, widget=None, event=None):
+        keyval = event.keyval
+        keyval_name = gtk.gdk.keyval_name(keyval)
+        # state = event.state
+        # ctrl = (state & gtk.gdk.CONTROL_MASK)
+        if keyval_name == "Escape":
+            gtk.main_quit()
+        return False
+
+    # This is the our generic callback function
+    def callback(self, widget=None, event=None, data=None):
+        if (data is not None and
+           data in self.actions and
+           self.actions[data] is not None and
+           event.button == 1):  # left click
+                os.system(self.actions[data])
+        gtk.main_quit()
+
+if __name__ == "__main__":
+    SystemDialog()
+    gtk.main()
