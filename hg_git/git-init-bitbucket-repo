@@ -10,8 +10,6 @@ printf "\nPlease insert Bitbucket password: "
 read -s password 
 
 #Create repo using curl and Bitbucket REST API v2.0
-#curl --user $username:$password https://api.bitbucket.org/1.0/repositories/ \
-#--data name=$reponame --data is_private='true'
 curl -X POST -v -u $username:$password -H "Content-Type: application/json" \
 https://api.bitbucket.org/2.0/repositories/$username/$reponame \
 -d '{"scm": "git", "is_private": "true", "fork_policy": "no_public_forks" }'
