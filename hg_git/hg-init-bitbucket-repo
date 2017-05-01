@@ -27,6 +27,8 @@ echo username = $username >> .hg/hgrc
 echo \[auth\] >> .hg/hgrc
 echo bb.prefix = https://bitbucket.org >> .hg/hgrc
 echo bb.username = $username >> .hg/hgrc
+
+#If you want to store the password uncomment the next line
 #echo bb.password = $password >> .hg/hgrc
 
 hg push https://$username:$password@bitbucket.org/$username/$reponame

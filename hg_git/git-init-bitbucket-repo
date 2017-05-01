@@ -20,7 +20,12 @@ git init
 git add .
 git commit -a -m "Initial automatic commit $(date)"
 git remote add origin https://$username@bitbucket.org/$username/$reponame.git
-git config credential.helper store
-git push -u https://$username:$password@bitbucket.org/$username/$reponame.git 
+
+#If you want to store the password uncomment the next line
+#git config credential.helper store
+
+git push -u https://$username@bitbucket.org/$username/$reponame.git 
+
+
 
 printf "\nFinished\n\n"
