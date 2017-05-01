@@ -24,6 +24,6 @@ git remote add origin https://$username@bitbucket.org/$username/$reponame.git
 #If you want to store the password uncomment the next line
 #git config credential.helper store
 
-git push -u https://$username@bitbucket.org/$username/$reponame.git 
+git push -u origin master
 
 printf "\nFinished\n\n"
