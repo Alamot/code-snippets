@@ -1,2 +1,2 @@
 # code-snippets
-Various code snippets
+Various code snippets.
