@@ -1,0 +1,110 @@
+#!/bin/bash 
+
+if [ $# -lt 1 ]
+then
+  echo "Usage: $0 [android|kali|macos|winxp|win8] [extra options]"
+  exit
+fi
+
+export QEMU_AUDIO_DRV=alsa
+export QEMU_AUDIO_TIMER_PERIOD=0
+
+case $1 in
+"android" )
+  set -x
+  qemu-system-x86_64 -machine accel=kvm \
+    -display sdl \
+    -cpu host -smp 4,sockets=1,cores=2,threads=2 \
+    -m 2G \
+    -hda "/mnt/TONY/VMS/ANDROID/androidx86_64.qcow2" \
+    -boot once=c,menu=off \
+    -netdev type=user,id=mynet0,smb="/mnt/TONY/VMS/SHARED" \
+    -device rtl8139,netdev=mynet0 \
+    -soundhw es1370 \
+    -name "Androidx86_64" \
+    "${@:2}"
+  set +x;;
+    #To passthrough usb wifi updater -usbdevice host:0cf3:9271 
+"kali" )
+  set -x
+  qemu-system-x86_64 -machine accel=kvm \
+    -display sdl \
+    -cpu host -smp 4,sockets=1,cores=2,threads=2 \
+    -m 3G \
+    -boot once=c,menu=off \
+    -hda /mnt/TONY/VMS/LINUX/kali.qcow2 \
+    -netdev type=user,id=mynet0,smb="/mnt/TONY/VMS/SHARED" \
+    -device virtio-net-pci,netdev=mynet0 \
+    -soundhw ac97 \
+    -usb -device usb-tablet \
+    -name "Kali" \
+    "${@:2}"
+  set +x;;
+    # To passtrhrough usb 3.0
+    #-device nec-usb-xhci,id=xhci \
+    #-device usb-host,bus=xhci.0,vendorid=0x090c,productid=0x1000 
+"macos" )
+  set -x
+  echo 1 | sudo tee --append /sys/module/kvm/parameters/ignore_msrs
+  qemu-system-x86_64 -machine accel=kvm \
+    -display sdl \
+    -machine pc-q35-2.4 \
+    -cpu Penryn,vendor=GenuineIntel -smp 4,sockets=1,cores=2,threads=2 \
+    -m 3G \
+    -boot once=c,menu=off \
+    -kernel /mnt/TONY/VMS/MACOS/enoch_rev2877_boot -smbios type=2 \
+    -device ide-drive,bus=ide.2,drive=MacHDD \
+    -drive id=MacHDD,if=none,file=/mnt/TONY/VMS/MACOS/macos_sierra.img,cache=none \
+    -netdev type=user,id=hub0port0,smb="/mnt/TONY/VMS/SHARED" \
+    -device e1000-82545em,netdev=hub0port0,id=mac_vnet0 \
+    -usb -device usb-kbd -device usb-tablet \
+    -device ich9-intel-hda -device hda-duplex \
+    -vga vmware \
+    -name "macos Sierra" \
+    "${@:2}"
+  echo 0 | sudo tee --append /sys/module/kvm/parameters/ignore_msrs
+  set +x;;
+  # If FakeSMC is not installed this is needed: 
+  #-device isa-applesmc,osk="ourhardworkbythesewordsguardedpleasedontsteal(c)AppleComputerInc" \
+"winxp" )
+  set -x
+  qemu-system-x86_64 -machine accel=kvm \
+    -display sdl \
+    -cpu host -smp 4,sockets=1,cores=2,threads=2 \
+    -m 2G \
+    -boot once=c,menu=off \
+    -hda /mnt/TONY/VMS/WINDOWS/WINXP.img \
+    -netdev type=user,id=mynet0,smb="/mnt/TONY/VMS/SHARED" \
+    -device virtio-net-pci,netdev=mynet0 \
+    -soundhw ac97 \
+    -usb -device usb-tablet \
+    -rtc base=localtime \
+    -name "Windows XP" \
+    "${@:2}"
+  set +x;;
+    # To passtrhrough usb 2.0
+    #-device usb-ehci,id=ehci \
+    #-device usb-host,bus=ehci.0,vendorid=0x0951,productid=0x16a3 
+"win8" )
+  set -x
+  qemu-system-x86_64 -machine accel=kvm \
+    -display sdl \
+    -cpu host -smp 4,sockets=1,cores=2,threads=2 \
+    -m 3G \
+    -boot once=c,menu=off \
+    -hda /mnt/TONY/VMS/WINDOWS/WIN8.img \
+    -netdev type=user,id=mynet0,smb="/mnt/TONY/VMS/SHARED" \
+    -device virtio-net-pci,netdev=mynet0 \
+    -soundhw ac97 \
+    -usb -device usb-tablet \
+    -rtc base=localtime \
+    -name "Windows 8" \
+    "${@:2}"
+  set +x;;
+    # To passtrhrough usb 3.0
+    #-device nec-usb-xhci,id=xhci \
+    #-device usb-host,bus=xhci.0,vendorid=0x090c,productid=0x1000 
+esac
+# To make a local host-guest network
+#-netdev tap,id=t0,ifname=vnet0,script=no,downscript=no -device virtio-net-pci,netdev=t0
+
