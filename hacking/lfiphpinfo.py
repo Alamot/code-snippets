@@ -3,8 +3,8 @@ import sys
 import threading
 import socket
 
-LHOST=10.10.15.203
-LPOST=60001
+LHOST="10.10.15.203"
+LPOST="60001"
 
 def setup(host, port):
     TAG="Security Test"
