@@ -90,7 +90,7 @@ class ThreadWorker(threading.Thread):
                 if self.event.is_set():
                     break
                 if x:
-                    print "\nGot it! Shell created in /tmp/msf"
+                    print "\nGot it!"
                     self.event.set()
             
             except socket.error:
