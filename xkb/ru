@@ -1,8 +1,6 @@
 // based on
-// russian standard keyboard
-// AEN <aen@logic.ru>
-// 2001/12/23 by Leon Kanter <leon@blackcatlinux.com>
-// 2005/12/09 Valery Inozemtsev <shrek@altlinux.ru>
+// russian student keyboard
+// Alamot
 
 // Windows layout
 default  partial alphanumeric_keys
