@@ -15,11 +15,8 @@ TIMEOUT = 30
 
 
 def print_result(mssql):
-    for row in mssql:
-        for column in row.keys():
-            print(column, end=' ')
-        print("")
-        for column in row.keys():
+    for row in list(mssql)[:-1]:
+        for column in row.keys()[:-1]:
             print(row[column], end=' ')
         print("")
 
