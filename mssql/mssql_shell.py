@@ -9,8 +9,8 @@ from pwn import *
 from base64 import b64encode
 
 MSSQL_SERVER="10.13.38.11"
-sa_MSSQL_USERNAME = "sa_user"
-sa_MSSQL_PASSWORD = "PickAStr0ng0ne$"
+sa_MSSQL_USERNAME = "sa_user1"
+sa_MSSQL_PASSWORD = "PickAStr0ng0ne$Passw0rd"
 TIMEOUT = 30
 
 
