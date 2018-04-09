@@ -1,5 +1,7 @@
 require 'winrm'
 
+# Author: Alamot
+
 conn = WinRM::Connection.new( 
   endpoint: 'https://IP:PORT/wsman',
   transport: :ssl,
@@ -12,7 +14,8 @@ command=""
 
 conn.shell(:powershell) do |shell|
     until command == "exit\n" do
-        print "PS > "
+        output = shell.run("-join($id,'PS ',$(whoami),'@',$env:computername,' ',$((gi $pwd).Name),'> ')")
+        print(output.output.chomp)
         command = gets        
         output = shell.run(command) do |stdout, stderr|
             STDOUT.print stdout
@@ -21,4 +24,3 @@ conn.shell(:powershell) do |shell|
     end    
     puts "Exiting with code #{output.exitcode}"
 end
-
