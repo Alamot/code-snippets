@@ -28,8 +28,8 @@ def lrotate(s, d):
 
     
 if len(sys.argv) < 2 or sys.argv[1].strip().lower() == "--help":
-    print("Known-plaintext attack: "+sys.argv[0]+" <filename> <known plaintext> [max_key_length]")
-    print("Decrypt using known key: "+sys.argv[0]+" <filename> --key=the_known_key")
+    print("Known-plaintext attack:\n"+sys.argv[0]+" <encrypted file> <known plaintext> [max_key_length]")
+    print("\nDecrypt using known key:\n"+sys.argv[0]+" <encrypted file> --key=the_known_key")
     exit()
 
 filename = sys.argv[1]
