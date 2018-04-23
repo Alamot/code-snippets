@@ -52,13 +52,12 @@ if len(known_plaintext) > max_key_length:
     exit()
     
 if len(sys.argv) > 3:
-    print(len(sys.argv))
     max_key_length = int(sys.argv[3])+1
     
 with open(filename, "rb") as f:
     data = f.read()
 
-print("Searching XOR-encrypted "+filename+" for string '"+known_plaintext+"'")
+print("Searching XOR-encrypted "+filename+" for string '"+known_plaintext+"' (max_key_length = "+str(max_key_length-1)+")")
 
 try:    
     for i in range(len(data)-len(known_plaintext)): # Try known plaintext in every position
@@ -82,8 +81,9 @@ try:
                         else:
                             decrypted_text += chr(ord(data[x]) ^ ord(repeated_key[x]))
                     if is_printable(decrypted_text, ignore_code): # Is the whole result printable?
-                        print("Key length: "+str(len(expanded_key)), "\nPartial Key: "+expanded_key, "\nPlaintext: "+decrypted_text)
-                        print("")
+                        if known_plaintext in decrypted_text:
+                            print("Key length: "+str(len(expanded_key)), "\nPartial Key: "+expanded_key, "\nPlaintext: "+decrypted_text)
+                            print("")
 except KeyboardInterrupt:
     print("\nCtrl+C received. Exiting...")
     exit()
