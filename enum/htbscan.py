@@ -9,7 +9,7 @@ ports = "0-65535"
 if len(sys.argv) > 1:
     ip = sys.argv[1]
 else:
-    print("Usage: "+sys.argv[0]+" IP [max_rate] [ports]")
+    print("Usage: "+sys.argv[0]+" <IP> [max_rate] [ports]")
     exit()
 
 if len(sys.argv) > 2:
