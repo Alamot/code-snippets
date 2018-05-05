@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Author: Alamots
+# Author: Alamot
 import subprocess, re, sys
 
 ip = "127.0.0.1"
