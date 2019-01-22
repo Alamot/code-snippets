@@ -2,7 +2,7 @@
 
 if [ $# -lt 1 ]
 then
-  echo "Usage: $0 [android|kali|macos|winxp|win8] [extra options]"
+  echo "Usage: $0 [android|kali|macos|winxp|win8|win10] [extra options]"
   exit
 fi
 
@@ -24,6 +24,38 @@ case $1 in
     -name "Androidx86_64" \
     "${@:2}"
   set +x;;
+    #To passthrough usb wifi updater -usbdevice host:0cf3:9271
+"biolinux" )
+  set -x
+  qemu-system-x86_64 -machine accel=kvm \
+    -display sdl \
+    -cpu host -smp 4,sockets=1,cores=2,threads=2 \
+    -m 3G \
+    -boot once=c,menu=off \
+    -hda /mnt/TONY/VMS/LINUX/biolinux.qcow2 \
+    -netdev type=user,id=mynet0,smb="/mnt/TONY/VMS/SHARED" \
+    -device virtio-net-pci,netdev=mynet0 \
+    -soundhw ac97 \
+    -usb -device usb-tablet \
+    -name "Biolinux" \
+    "${@:2}"
+  set +x;;
+    #To passthrough usb wifi updater -usbdevice host:0cf3:9271
+"debian" )
+  set -x
+  qemu-system-x86_64 -machine accel=kvm \
+    -cpu host -smp 4,sockets=1,cores=2,threads=2 \
+    -m 1G \
+    -display sdl \
+    -boot once=c,menu=off \
+    -drive format=raw,file=/mnt/TONY/VMS/LINUX/debian.raw\
+    -netdev type=user,id=mynet0,smb="/mnt/TONY/VMS/SHARED" \
+    -device virtio-net-pci,netdev=mynet0 \
+    -usb -device usb-tablet \
+    -name "debian" \
+    "${@:2}"
+  set +x;;
+    #-cdrom /mnt/DATA/OSES/UNIX/debian-9.1.0-amd64-netinst.iso
     #To passthrough usb wifi updater -usbdevice host:0cf3:9271 
 "kali" )
   set -x
@@ -50,7 +82,7 @@ case $1 in
     -display sdl \
     -machine pc-q35-2.4 \
     -cpu Penryn,vendor=GenuineIntel -smp 4,sockets=1,cores=2,threads=2 \
-    -m 3G \
+    -m 4G \
     -boot once=c,menu=off \
     -kernel /mnt/TONY/VMS/MACOS/enoch_rev2877_boot -smbios type=2 \
     -device ide-drive,bus=ide.2,drive=MacHDD \
@@ -64,8 +96,9 @@ case $1 in
     "${@:2}"
   echo 0 | sudo tee --append /sys/module/kvm/parameters/ignore_msrs
   set +x;;
+  # -redir tcp:64901::5900 \
   # If FakeSMC is not installed this is needed: 
-  #-device isa-applesmc,osk="ourhardworkbythesewordsguardedpleasedontsteal(c)AppleComputerInc" \
+  #-device isa-applesmc,osk="ourhardworkbythesewordsguardedpleasedontsteal(c)AppleComputerInc" 
 "winxp" )
   set -x
   qemu-system-x86_64 -machine accel=kvm \
@@ -94,7 +127,9 @@ case $1 in
     -boot once=c,menu=off \
     -hda /mnt/TONY/VMS/WINDOWS/WIN8.img \
     -netdev type=user,id=mynet0,smb="/mnt/TONY/VMS/SHARED" \
-    -device virtio-net-pci,netdev=mynet0 \
+    -device virtio-net-pci,netdev=mynet0   \
+    -device nec-usb-xhci,id=xhci \
+    -device usb-host,bus=xhci.0,vendorid=0x11f1,productid=0x25e1 \
     -soundhw ac97 \
     -usb -device usb-tablet \
     -rtc base=localtime \
@@ -103,8 +138,63 @@ case $1 in
   set +x;;
     # To passtrhrough usb 3.0
     #-device nec-usb-xhci,id=xhci \
-    #-device usb-host,bus=xhci.0,vendorid=0x090c,productid=0x1000 
+    #-device usb-host,bus=xhci.0,vendorid=0x090c,productid=0x1000
+"win10" )
+  set -x
+  qemu-system-x86_64 -machine accel=kvm \
+    -display gtk -vga qxl \
+    -cpu host -smp 4,sockets=1,cores=2,threads=2 \
+    -m 4G \
+    -bios /usr/share/edk2-ovmf/OVMF.fd \
+    -boot once=c,menu=off \
+    -hda /mnt/TONY/VMS/WINDOWS/WIN10.img \
+    -netdev type=user,id=mynet0,smb="/mnt/TONY/VMS/SHARED" \
+    -device virtio-net-pci,netdev=mynet0 \
+    -soundhw hda \
+    -usb -device usb-tablet \
+    -rtc base=localtime \
+    -name "Windows 10" \
+    "${@:2}"
+  set +x;;
+  # -device nec-usb-xhci,id=xhci \
+  # -device usb-host,bus=xhci.0,vendorid=0x11f1,productid=0x25e1 \
+  # -cdrom /usr/share/drivers/windows/virtio-win-0.1.141.iso \    
+"aarch64" )
+  stty intr ^] #change ctrl+c to ctrl+]
+  set -x
+  qemu-system-aarch64 -machine virt -cpu cortex-a57 \
+    -bios /mnt/TONY/VMS/LINUX/QEMU_EFI.fd \
+    -m 3G \
+    -serial stdio \
+    -display sdl \
+    -device VGA -device usb-ehci -device usb-tablet -device usb-kbd \
+    -hda /mnt/TONY/VMS/LINUX/aarch64.qcow2 \
+    -kernel /mnt/TONY/VMS/LINUX/boot/Image \
+    -initrd /mnt/TONY/VMS/LINUX/boot/initramfs-linux.img \
+    -append "root=/dev/vda1 rootfstype=ext4 rw" \
+    -netdev type=user,id=mynet0,smb="/mnt/TONY/VMS/SHARED" \
+    -device rtl8139,netdev=mynet0 \
+    -name "aarch64"\
+    "${@:2}"
+  set +x;;
+  # -nographic
+"kivy" )
+  set -x
+  qemu-system-x86_64 -machine accel=kvm \
+    -display sdl \
+    -cpu host -smp 4,sockets=1,cores=2,threads=2 \
+    -m 3G \
+    -boot once=c,menu=off \
+    -hda /mnt/TONY/VMS/LINUX/kivy.qcow2 \
+    -netdev type=user,id=mynet0,smb="/mnt/TONY/VMS/SHARED" \
+    -device virtio-net-pci,netdev=mynet0 \
+    -soundhw ac97 \
+    -usb -device usb-tablet \
+    -name "Kivy" \
+    "${@:2}"
+  set +x;;
 esac
+
 # To make a local host-guest network
 #-netdev tap,id=t0,ifname=vnet0,script=no,downscript=no -device virtio-net-pci,netdev=t0
 
