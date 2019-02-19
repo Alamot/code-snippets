@@ -14,7 +14,7 @@ import tqdm
 import hashlib
 
 MSSQL_SERVER="10.13.38.11"
-MSSQL_USERNAME = "sa_user"
+MSSQL_USERNAME = "Domain\\sa_user"
 MSSQL_PASSWORD = "**********"
 BUFFER_SIZE = 5*1024
 TIMEOUT = 30
