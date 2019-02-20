@@ -76,7 +76,7 @@ def shell():
         stored_cwd = cwd
         
         while True:
-            cmd = raw_input("CMD "+username+"@"+computername+" "+cwd+"> ").rstrip("\n")
+            cmd = raw_input("CMD "+username+"@"+computername+" "+cwd+"> ").rstrip("\n").replace("'", "''")
             if cmd.lower()[0:4] == "exit":
                 mssql.close()
                 return
