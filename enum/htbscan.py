@@ -6,7 +6,7 @@ import subprocess
 import sys
 
 
-def run_command(command, outfile=None):
+def run_command(command):
     print("\nRunning command: "+' '.join(command))
     sp = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     output = ""
@@ -18,9 +18,6 @@ def run_command(command, outfile=None):
             output += out
             sys.stdout.write(out)
             sys.stdout.flush()
-            if outfile:
-                outfile.write(out)
-                outfile.flush()
     return output
  
 
@@ -28,7 +25,12 @@ def enum(ip, ports, max_rate, outfile=None):
     # Running masscan
     cmd = ["sudo", "masscan", "-e", "tun0", "-p" + ports,
            "--max-rate", str(max_rate), "--interactive", ip]
-    output = run_command(cmd, outfile)
+    output = run_command(cmd)
+    if outfile:
+        for line in output.split("\n"):
+            if "rate" not in line: # Don't write rate lines
+                outfile.write(line + "\n")
+        outfile.flush()
 
     # Get discovered TCP ports from the masscan output, sort them and run nmap for those
     results = re.findall('port (\d*)/tcp', output)
@@ -38,7 +40,10 @@ def enum(ip, ports, max_rate, outfile=None):
         tcp_ports = ''.join(str(tcp_ports)[1:-1].split())
         # Running nmap
         cmd = ["sudo", "nmap", "-A", "-p"+tcp_ports, ip]
-        output = run_command(cmd, outfile)
+        output = run_command(cmd)
+        if outfile:
+            outfile.write(output)
+            outfile.flush()
 
     # Get discovered UDP ports from the masscan output, sort them and run nmap for those
     results = re.findall('port (\d*)/udp', output)
@@ -48,7 +53,10 @@ def enum(ip, ports, max_rate, outfile=None):
         udp_ports = ''.join(str(udp_ports)[1:-1].split())
         # Running nmap
         cmd = ["sudo", "nmap", "-A", "-sU", "-p"+udp_ports, ip]
-        output = run_command(cmd, outfile)
+        output = run_command(cmd)
+        if outfile:
+            outfile.write(output)
+            outfile.flush()
 
 
 def main():
