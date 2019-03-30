@@ -27,7 +27,8 @@ def enum(ip, ports, max_rate, outfile=None):
            "--max-rate", str(max_rate), "--interactive", ip]
     output = run_command(cmd)
     if outfile:
-        for line in output.split("\n"):
+        for line in output.splitlines():
+            print("LINE:" + line)
             if "rate" not in line: # Don't write rate lines
                 outfile.write(line + "\n")
         outfile.flush()
