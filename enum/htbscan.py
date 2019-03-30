@@ -1,47 +1,14 @@
 #!/usr/bin/env python
 # Author: Alamot
-import subprocess, re, sys
-
-ip = "127.0.0.1"
-max_rate = "500"
-ports = "0-65535"
-
-if len(sys.argv) > 1:
-    ip = sys.argv[1]
-else:
-    print("Usage: "+sys.argv[0]+" <IP> [max_rate] [ports]")
-    exit()
-
-if len(sys.argv) > 2:
-    max_rate = sys.argv[2]
-
-if len(sys.argv) > 3:
-    ports = sys.argv[3]
+import argparse
+import re
+import subprocess
+import sys
 
 
-# Running masscan
-cmd = ["sudo", "masscan", "-e", "tun0", "-p"+ports, "--max-rate", max_rate, "--interactive", ip]
-print("\nRunning command: "+' '.join(cmd))
-sp = subprocess.Popen(cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-output = ""
-while True:
-    out = sp.stdout.read(1).decode('utf-8')
-    if out == '' and sp.poll() != None:
-        break
-    if out != '':
-        output += out
-        sys.stdout.write(out)
-        sys.stdout.flush()
-
-# Getting discovered ports from the masscan output and sorting them
-results = re.findall('port (\d*)', output)
-if results:
-    ports = list({int(port) for port in results})
-    ports.sort()
-    # Running nmap
-    cmd = ["sudo", "nmap", "-A", "-p"+''.join(str(ports)[1:-1].split()), ip]
-    print("\nRunning command: "+' '.join(cmd)+"\n")
-    sp = subprocess.Popen(cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+def run_command(command, outfile=None):
+    print("\nRunning command: "+' '.join(command))
+    sp = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     output = ""
     while True:
         out = sp.stdout.read(1).decode('utf-8')
@@ -51,4 +18,66 @@ if results:
             output += out
             sys.stdout.write(out)
             sys.stdout.flush()
+            if outfile:
+                outfile.write(out)
+                outfile.flush()
+    return output
+ 
+
+def enum(ip, ports, max_rate, outfile=None):
+    # Running masscan
+    cmd = ["sudo", "masscan", "-e", "tun0", "-p" + ports,
+           "--max-rate", str(max_rate), "--interactive", ip]
+    output = run_command(cmd, outfile)
+
+    # Get discovered TCP ports from the masscan output, sort them and run nmap for those
+    results = re.findall('port (\d*)/tcp', output)
+    if results:
+        tcp_ports = list({int(port) for port in results})
+        tcp_ports.sort()
+        tcp_ports = ''.join(str(tcp_ports)[1:-1].split())
+        # Running nmap
+        cmd = ["sudo", "nmap", "-A", "-p"+tcp_ports, ip]
+        output = run_command(cmd, outfile)
+
+    # Get discovered UDP ports from the masscan output, sort them and run nmap for those
+    results = re.findall('port (\d*)/udp', output)
+    if results:
+        udp_ports = list({int(port) for port in results})
+        udp_ports.sort()
+        udp_ports = ''.join(str(udp_ports)[1:-1].split())
+        # Running nmap
+        cmd = ["sudo", "nmap", "-A", "-sU", "-p"+udp_ports, ip]
+        output = run_command(cmd, outfile)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Port/Service enumaration tool.")
+    parser.add_argument("IP",  help="IP address to scan.")
+    parser.add_argument("-tp", "--tcp-ports", dest="tcp_ports", default="1-65535", help="List of ports/port ranges to scan (TCP only).")
+    parser.add_argument("-up", "--udp-ports", dest="udp_ports", default="1-65535", help="List of ports/port ranges to scan (UDP only).")
+    parser.add_argument("-r", "--max-rate", dest="max_rate", default=500, type=int, help="Send packets no faster than <number> per second")
+    parser.add_argument("-o", "--output", dest="outfile", help="File to write output to.")
+    args = parser.parse_args()
     
+    # Construct ports string
+    ports = ""
+    tcp = args.tcp_ports and args.tcp_ports.lower() not in ["0", "None"]
+    udp = args.udp_ports and args.udp_ports.lower() not in ["0", "None"]
+    if tcp:
+        ports += args.tcp_ports
+    if tcp and udp:
+        ports += ","
+    if udp:
+        ports += "U:" + args.udp_ports
+        
+    # Write to file?
+    if args.outfile:
+        with open(args.outfile, "at") as outfile:
+            enum(args.IP, ports, args.max_rate, outfile)
+    else:
+        enum(args.IP, ports, args.max_rate)
+        
+    
+if __name__ == "__main__":
+    main()
