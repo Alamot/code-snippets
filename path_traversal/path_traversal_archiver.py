@@ -24,7 +24,7 @@ def make_traversal_path(path, level=0, os="unix"):
 
 def main():
     parser = argparse.ArgumentParser(description="A tool to create archives " +
-    "containing path traversal filenames (e.g. '../../etc/passwd').")
+    "containing path-traversal filenames (e.g. '../../etc/passwd').")
     parser.add_argument("file_to_add", help="File to add in the archive.")
     parser.add_argument("archive",
                         help="Archive filename (Supported extensions are " +
@@ -34,7 +34,7 @@ def main():
                         help="A single level or a range of levels to " +
                         "traverse (default: %(default)s).")
     parser.add_argument("-o", "--os", dest="os", default="unix",
-                        help="OS [unix|win] (default: %(default)s).")
+                        help="Target OS [unix|win] (default: %(default)s).")
     parser.add_argument("-p", "--path", dest="path", default="",
                         help="Path to include (e.g. 'etc/').")
     args = parser.parse_args()
