@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Author: Alamot
 import os
 import sys
 import zipfile
