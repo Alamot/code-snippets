@@ -7,8 +7,8 @@ import tarfile
 import argparse
 
 
-mode = {".zip":"a", ".jar":"a", ".tar":"a",
-        ".gz":"w:gz", ".tgz":"w:gz", ".bz2":"w:bz2"}
+mode = {".zip":"a", ".jar":"a", ".war":"a", ".apk":"a",
+        ".tar":"a", ".gz":"w:gz", ".tgz":"w:gz", ".bz2":"w:bz2"}
 
 
 def make_traversal_path(path, level=0, os="unix"):
@@ -28,9 +28,11 @@ def main():
     parser.add_argument("file_to_add", help="File to add in the archive.")
     parser.add_argument("archive",
                         help="Archive filename (Supported extensions are " +
-                             ".zip, .jar, .tar, .tar.bz2, .tar.gz, .tgz).")
+                             ".zip, .jar, .war, .apk, " +
+                             ".tar, .tar.bz2, .tar.gz, .tgz).")
     parser.add_argument("-l", "--levels", dest="levels", default="0-10",
-                        help="A single level or a range of levels to traverse (default: %(default)s).")
+                        help="A single level or a range of levels to " +
+                        "traverse (default: %(default)s).")
     parser.add_argument("-o", "--os", dest="os", default="unix",
                         help="OS [unix|win] (default: %(default)s).")
     parser.add_argument("-p", "--path", dest="path", default="",
@@ -60,7 +62,7 @@ def main():
 
     path = args.path + os.path.basename(args.file_to_add)
 
-    if ext in [".zip", ".jar"]:
+    if ext in [".zip", ".jar", ".war", ".apk"]:
         print("Creating archive " + args.archive)
         zipf = zipfile.ZipFile(args.archive, mode[ext])
         for i in range(start, end):
