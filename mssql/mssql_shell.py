@@ -49,7 +49,7 @@ def upload(mssql, stored_cwd, local_path, remote_path):
         data = f.read()
         md5sum = hashlib.md5(data).hexdigest()
         b64enc_data = b"".join(base64.encodestring(data).split()).decode()
-        
+
     print("Data length (b64-encoded): "+str(len(b64enc_data)/1024)+"KB")
     for i in tqdm.tqdm(range(0, len(b64enc_data), BUFFER_SIZE), unit_scale=BUFFER_SIZE/1024, unit="KB"):
         cmd = 'echo '+b64enc_data[i:i+BUFFER_SIZE]+' >> "' + remote_path + '.b64"'
@@ -65,6 +65,7 @@ def upload(mssql, stored_cwd, local_path, remote_path):
         print("MD5 hashes match: " + md5sum)
     else:
         print("ERROR! MD5 hashes do NOT match!")
+
 
 def shell():
     mssql = None
