@@ -2,7 +2,7 @@
 from __future__ import print_function
 # Author: Alamot
 # Use pymssql >= 1.0.3 (otherwise it doesn't work correctly)
-# To upload a file type: UPLOAD local_path remote_path
+# To upload a file, type: UPLOAD local_path remote_path
 # e.g. UPLOAD myfile.txt C:\temp\myfile.txt
 # If you omit the remote_path it uploads the file on the current working folder.
 # Be aware that pymssql has some serious memory leak issues when the connection fails (see: https://github.com/pymssql/pymssql/issues/512).
