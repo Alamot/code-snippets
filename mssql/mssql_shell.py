@@ -78,44 +78,53 @@ def upload(mssql, stored_cwd, local_path, remote_path):
 
 
 def dowload(mssql, stored_cwd, remote_path, local_path=""):
-    remote_path = remote_path.replace('"', '').replace('\'', '')
-    if local_path == "":
-        local_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ntpath.basename(remote_path))
-
-    print("Downloading " + remote_path + " to " + local_path)
-
-    tmp_filename = '%TEMP%\\' + id_generator() + ".b64"
-    cmd = 'del "' + tmp_filename + '"'
-    mssql.execute_query("EXEC xp_cmdshell '" + cmd + "'")
-
-    cmd = 'certutil -encode "' + remote_path + '" "' + tmp_filename + '"'
-    mssql.execute_query("EXEC xp_cmdshell 'cd " + stored_cwd + " & " + cmd + " & echo %username%^|%COMPUTERNAME% & cd'")
-
-    cmd = 'type "' + tmp_filename + '"'
-    mssql.execute_query("EXEC xp_cmdshell 'cd " + stored_cwd + " & " + cmd + " & echo %username%^|%COMPUTERNAME% & cd'")
-
-    certutil_result = list(mssql)
-
     try:
+        remote_path = remote_path.replace('"', '').replace('\'', '')
+        if local_path == "":
+            local_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ntpath.basename(remote_path))
+
+        print("Downloading " + remote_path + " to " + local_path)
+
+        tmp_filename = '%TEMP%\\' + id_generator() + ".b64"
+        cmd = 'del "' + tmp_filename + '"'
+        mssql.execute_query("EXEC xp_cmdshell '" + cmd + "'")
+
+        cmd = 'certutil -encode "' + remote_path + '" "' + tmp_filename + '"'
+        mssql.execute_query("EXEC xp_cmdshell 'cd " + stored_cwd + " & " + cmd + " & echo %username%^|%COMPUTERNAME% & cd'")
+
+        cmd = 'type "' + tmp_filename + '"'
+        mssql.execute_query("EXEC xp_cmdshell 'cd " + stored_cwd + " & " + cmd + " & echo %username%^|%COMPUTERNAME% & cd'")
+
+        certutil_result = list(mssql)
+
         if "CERTIFICATE-----" not in str(certutil_result[0][0]):
-            raise Exception()
-    except:
-        return "echo *** ERROR WHILE DOWNLOADING THE FILE ***"
+            raise Exception("ERROR! Encoding with Certutil failed!")
 
-    file_b64 = ""
-    for row in certutil_result[1:-4]:
-        columns = list(row)
-        file_b64 += row[columns[-1]]
+        file_b64 = ""
+        for row in certutil_result[1:-4]:
+            columns = list(row)
+            file_b64 += row[columns[-1]]
 
-    with open(local_path, 'wb') as f:
-        data = base64.b64decode(file_b64, None)
-        f.write(data)
+        with open(local_path, 'wb') as f:
+            data = base64.b64decode(file_b64, None)
+            md5sum = hashlib.md5(data).hexdigest()
+            f.write(data)
 
-    tmp_filename = '%TEMP%\\' + tmp_filename + ".b64"
-    cmd = 'del "' + tmp_filename + '"'
-    mssql.execute_query("EXEC xp_cmdshell '" + cmd + "'")
+        tmp_filename = '%TEMP%\\' + tmp_filename + ".b64"
+        cmd = 'del "' + tmp_filename + '"'
+        mssql.execute_query("EXEC xp_cmdshell '" + cmd + "'")
 
-    return "echo *** DOWNLOAD PROCEDURE FINISHED ***"
+        cmd = 'certutil -hashfile "' + remote_path + '" MD5'
+        mssql.execute_query("EXEC xp_cmdshell 'cd "+stored_cwd+" & "+cmd+" & echo %username%^|%COMPUTERNAME% & cd'")
+        if md5sum in [row[row.keys()[-1]].strip() for row in mssql if row[row.keys()[-1]]]:
+            print("MD5 hashes match: " + md5sum)
+        else:
+            Exception("ERROR! MD5 hashes do NOT match!")
+
+        return "echo *** DOWNLOAD PROCEDURE FINISHED ***"
+
+    except Exception as e:
+        return "echo *** ERROR WHILE DOWNLOADING THE FILE: " + e + " ***"
 
 
 def shell():
