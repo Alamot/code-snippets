@@ -1,0 +1,39 @@
+#!/bin/bash 
+
+if [ $# -lt 1 ]
+then
+  echo "Usage: $0 [parrot|win10] [extra options]"
+  exit
+fi
+
+case $1 in
+"parrot" )
+  set -x
+  qemu-system-x86_64 -name "parrot" \
+    -machine accel=kvm -cpu host -smp 4,sockets=1,cores=2,threads=2 -m 3G \
+    -drive file=/mnt/SSD/parrot.qcow2,if=virtio \
+    -netdev type=user,id=mynet0,net=192.168.250.0/24,hostfwd=tcp::2222-:22 -device virtio-net-pci,netdev=mynet0 \
+    -display spice-app -vga none -device qxl-vga,vgamem_mb=32 \
+    -usb -device usb-tablet \
+    -audiodev alsa,id=snd0 -device AC97,audiodev=snd0 \
+    -boot once=c,menu=off \
+    -device virtio-serial-pci -spice unix,addr=/home/alamot/.cache/qemu/parrot/spice.sock,disable-ticketing \
+    -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent \
+    "${@:2}"
+  set +x;;
+"win10" )
+  set -x
+  qemu-system-x86_64 -name "win10" \
+    -machine accel=kvm -cpu host -smp 4,sockets=1,cores=2,threads=2 -m 4G \
+    -bios /mnt/SSD/edk2-ovmf/OVMF_CODE.fd \
+    -drive file=/mnt/SSD/win10.qcow2,if=virtio \
+    -netdev type=user,id=mynet0,net=192.168.250.0/24,hostfwd=tcp::22222-:22 -device virtio-net-pci,netdev=mynet0 \
+    -display spice-app -vga none -device qxl-vga,vgamem_mb=32 \
+    -usb -device usb-tablet \
+    -audiodev alsa,id=snd0 -device ich9-intel-hda -device hda-output,audiodev=snd0 \
+    -rtc base=localtime \
+    -boot once=c,menu=off \
+    -device virtio-serial-pci -spice unix,addr=/home/alamot/.cache/qemu/win10/spice.sock,disable-ticketing \
+    -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent \
+    "${@:2}"
+esac
