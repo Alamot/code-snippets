@@ -98,7 +98,7 @@ static int initNl80211(Netlink* nl, Wifi* w) {
      fprintf(stderr, "Failed to allocate netlink callback.\n"); 
      nl_close(nl->socket);
      nl_socket_free(nl->socket);
-     return ENOMEM;
+     return -ENOMEM;
   }
 
   nl_cb_set(nl->cb1, NL_CB_VALID , NL_CB_CUSTOM, getWifiName_callback, w);
