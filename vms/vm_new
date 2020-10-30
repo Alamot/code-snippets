@@ -13,12 +13,10 @@ case $1 in
     -machine accel=kvm -cpu host -smp 4,sockets=1,cores=2,threads=2 -m 2G \
     -drive file=/mnt/SSD/android.qcow2,if=virtio \
     -netdev type=user,id=mynet0,net=192.168.250.0/24,hostfwd=tcp::2222-:22 -device virtio-net-pci,netdev=mynet0 \
-    -display spice-app -vga none -device qxl-vga,vgamem_mb=32 \
+    -display sdl,gl=on -device virtio-vga,virgl=on \
     -device qemu-xhci -device usb-tablet \
     -audiodev alsa,id=snd0 -device es1370,audiodev=snd0 \
     -boot once=c,menu=off \
-    -device virtio-serial-pci -spice unix,addr=/home/alamot/.cache/qemu/android/spice.sock,disable-ticketing \
-    -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent \
     "${@:2}"
   set +x;;
 "gsm" )
