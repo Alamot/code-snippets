@@ -2,11 +2,56 @@
 
 if [ $# -lt 1 ]
 then
-  echo "Usage: $0 [parrot|win10] [extra options]"
+  echo "Usage: $0 [android|gsm|macos|parrot|win10] [extra options]"
   exit
 fi
 
 case $1 in
+"android" )
+  set -x
+  qemu-system-x86_64 -name "android" \
+    -machine accel=kvm -cpu host -smp 4,sockets=1,cores=2,threads=2 -m 2G \
+    -drive file=/mnt/SSD/android.qcow2,if=virtio \
+    -netdev type=user,id=mynet0,net=192.168.250.0/24,hostfwd=tcp::2222-:22 -device virtio-net-pci,netdev=mynet0 \
+    -display spice-app -vga none -device qxl-vga,vgamem_mb=32 \
+    -device qemu-xhci -device usb-tablet \
+    -audiodev alsa,id=snd0 -device es1370,audiodev=snd0 \
+    -boot once=c,menu=off \
+    -device virtio-serial-pci -spice unix,addr=/home/alamot/.cache/qemu/android/spice.sock,disable-ticketing \
+    -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent \
+    "${@:2}"
+  set +x;;
+"gsm" )
+  set -x
+  qemu-system-x86_64 -name "gsm" \
+    -machine accel=kvm -cpu host -smp 4,sockets=1,cores=2,threads=2 -m 4G \
+    -bios /mnt/SSD/FIRMWARE/edk2-ovmf/OVMF_CODE.fd \
+    -drive file=/mnt/SSD/gsm.qcow2,if=virtio \
+    -netdev type=user,id=mynet0,net=192.168.250.0/24,hostfwd=tcp::9022-:22,hostfwd=tcp::9080-:80,hostfwd=tcp::9443-:443 -device virtio-net-pci,netdev=mynet0 \
+    -nographic \
+    -device qemu-xhci -device usb-tablet \
+    -audiodev alsa,id=snd0 -device AC97,audiodev=snd0 \
+    -boot once=c,menu=off \
+    -device virtio-serial-pci -spice unix,addr=/home/alamot/.cache/qemu/gsm/spice.sock,disable-ticketing \
+    -device virtserialport,chardev=spicechannel0,name=com.redhat.spice.0 -chardev spicevmc,id=spicechannel0,name=vdagent \
+    "${@:2}"
+  set +x;;
+"macos" )
+  set -x
+  qemu-system-x86_64 -name "macos" \
+    -machine q35,accel=kvm -nodefaults -smp 4,sockets=1,cores=2,threads=2 -m 4G \
+    -cpu Penryn,vendor=GenuineIntel,kvm=on,+sse3,+sse4.2,+aes,+xsave,+avx,+xsaveopt,+avx2,+bmi2,+smep,+bmi1,+fma,+movbe,+invtsc \
+    -device isa-applesmc,osk="ourhardworkbythesewordsguardedpleasedontsteal(c)AppleComputerInc" -smbios type=2 \
+    -drive if=pflash,format=raw,readonly,file="/mnt/SSD/FIRMWARE/MACOS/OVMF_CODE.fd" \
+    -drive if=pflash,format=raw,file="/mnt/SSD/FIRMWARE/MACOS/OVMF_VARS-1024x768.fd" \
+    -drive id=ESP,if=virtio,format=qcow2,file=/mnt/SSD/FIRMWARE/MACOS/ESP.qcow2 \
+    -drive id=MyDisk,if=virtio,format=qcow2,file=/mnt/SSD/macos.qcow2 \
+    -netdev type=user,id=net0,net=192.168.250.0/24,hostfwd=tcp::2022-:22 -device vmxnet3,netdev=net0,id=net0,mac=46:3a:09:e6:f6:21 \
+    -display spice-app -vga none -device qxl-vga,vgamem_mb=32 \
+    -usb -device usb-kbd -device usb-tablet \
+    -audiodev alsa,id=snd0 -device ich9-intel-hda -device hda-output,audiodev=snd0 \
+    "${@:2}"
+  set +x;;
 "parrot" )
   set -x
   qemu-system-x86_64 -name "parrot" \
@@ -14,7 +59,7 @@ case $1 in
     -drive file=/mnt/SSD/parrot.qcow2,if=virtio \
     -netdev type=user,id=mynet0,net=192.168.250.0/24,hostfwd=tcp::2222-:22 -device virtio-net-pci,netdev=mynet0 \
     -display spice-app -vga none -device qxl-vga,vgamem_mb=32 \
-    -usb -device usb-tablet \
+    -device qemu-xhci -device usb-tablet \
     -audiodev alsa,id=snd0 -device AC97,audiodev=snd0 \
     -boot once=c,menu=off \
     -device virtio-serial-pci -spice unix,addr=/home/alamot/.cache/qemu/parrot/spice.sock,disable-ticketing \
@@ -25,11 +70,11 @@ case $1 in
   set -x
   qemu-system-x86_64 -name "win10" \
     -machine accel=kvm -cpu host -smp 4,sockets=1,cores=2,threads=2 -m 4G \
-    -bios /mnt/SSD/edk2-ovmf/OVMF_CODE.fd \
+    -bios /mnt/SSD/FIRMWARE/edk2-ovmf/OVMF_CODE.fd \
     -drive file=/mnt/SSD/win10.qcow2,if=virtio \
     -netdev type=user,id=mynet0,net=192.168.250.0/24,hostfwd=tcp::22222-:22 -device virtio-net-pci,netdev=mynet0 \
     -display spice-app -vga none -device qxl-vga,vgamem_mb=32 \
-    -usb -device usb-tablet \
+    -device qemu-xhci -device usb-tablet \
     -audiodev alsa,id=snd0 -device ich9-intel-hda -device hda-output,audiodev=snd0 \
     -rtc base=localtime \
     -boot once=c,menu=off \
