@@ -21,6 +21,7 @@ Stage1_entrypoint:             ; Main entry point where BIOS leaves us. Some BIO
     xor dx, dx                              ; dx: segment of buffer
     call Real_mode_read_disk
 
+    ; Print "Stage 1 finished." message.
     mov si, stage1_message
     call Real_mode_println
 
