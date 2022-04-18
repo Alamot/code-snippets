@@ -4,7 +4,7 @@ BITS 16
 %define PAGE_PRESENT (1 << 0)
 %define PAGE_WRITE   (1 << 1)
 %define CODE_SEG      0x0008
-%define FREE_SPACE    0x9000
+%define PAGING_DATA   0x9000
 
 ;---Initialized data------------------------------------------------------------
 
@@ -37,7 +37,7 @@ Prepare_paging:
 ; ES:EDI Should point to a valid page-aligned 16KiB buffer, for the PML4, PDPT, PD and a PT.;
 ; SS:ESP Should point to memory that can be used as a small (1 uint32_t) stack.             ;
 ;*******************************************************************************************;
-    mov edi, FREE_SPACE ; Point edi to a free space bracket.
+    mov edi, PAGING_DATA ; Point edi to a free space to create the paging structures.
 
     ; Zero out the 16KiB buffer. Since we are doing a rep stosd, count should be bytes/4.   
     push di         ; REP STOSD alters DI.
@@ -54,7 +54,7 @@ Prepare_paging:
 
      ; Build the Page Directory Pointer Table.
     lea eax, [es:di + 0x2000]         ; Put the address of the Page Directory in to EAX.
-    or eax, PAGE_PRESENT | PAGE_WRITE ; Or EAX with the flags - present flag, writable flag.
+    or eax, PAGE_PRESENT | PAGE_WRITE ; OR EAX with the flags (present flag, writable flag).
     mov [es:di + 0x1000], eax         ; Store the value of EAX as the first PDPTE.
 
      ; Build the Page Directory.
