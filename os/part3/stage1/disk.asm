@@ -68,5 +68,5 @@ Real_mode_read_disk:
     .print_error:
         mov si, disk_error_message
         call Real_mode_println
-       .halt: hlt
-        jmp .halt; Infinite loop. We cannot recover from disk error.
+    .halt: hlt
+     jmp .halt; Infinite loop. We cannot recover from disk error.
