@@ -48,6 +48,8 @@ Print:
 ;  r8: x                                                                           ;
 ;  r9: y                                                                           ;
 ;**********************************************************************************;
+    push rsi
+    push rax
     push r8
     push r9
     dec r8
@@ -69,6 +71,8 @@ Print:
     loop .string_loop
     pop r9
     pop r8
+    pop rax
+    pop rsi
     ret
 
 
@@ -79,6 +83,7 @@ Print_hex:
 ; r10: value to be printed                                                         ;
 ;  ah: Color attributes                                                            ;
 ;**********************************************************************************;
+    push r10
     push rbp
     mov rbp, rsp
     sub rsp, 20         ; make space for the string length (2 bytes) and 18 characters
@@ -87,7 +92,6 @@ Print_hex:
     mov [rsi], word 18  ; string length = 17
     mov [rsi+2], word "0x"  
     add rsi, 19         ; point rsi to the end of the string
-
     mov ecx, 16        ; loop 16 times (one for each digit)
    .digit:
         push r10             ; store rax
@@ -102,9 +106,8 @@ Print_hex:
         pop r10              ; restore rax
         shr r10, 4           ; right shift by 4 
     loop .digit         
-
     pop rsi       ; restore rsi (string address)
     call Print
-    
     leave
+    pop r10
     ret
