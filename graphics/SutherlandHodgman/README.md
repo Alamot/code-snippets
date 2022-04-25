@@ -1,4 +1,6 @@
-# Controls
+# 3D visualization of Sutherland-Hodgman algorithm (polygon clipping)
+
+## Controls
 
 * Rotation: Left mouse click
 * Zooming: Middle mouse click
