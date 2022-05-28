@@ -60,4 +60,9 @@ ForEach ($store in $namespace.Stores) {
     }
 }
 
-$records | ConvertTo-Json -Depth 10
+
+$records | ConvertTo-Json -Depth 10 
+
+# Uncomment the following lines and set the proper path to write the output into a file
+# $outfile = join-path -path "\\Tcom2\shared" -childpath $($env:COMPUTERNAME + "-" + $(Get-Date -UFormat "%Y-%m-%d") + ".json")
+# $records | ConvertTo-Json -Depth 10 | Set-Content $outfile 
