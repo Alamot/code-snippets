@@ -26,25 +26,22 @@ ForEach ($store in $namespace.Stores) {
 
     ForEach ($rule in $rules) {
         
-        $actions_to_grab_found = 0
-
         if ($rule.Enabled) {
 
-            $records[-1]['Rules'] += , @{}
-            $records[-1]['Rules'][-1]['name'] = $rule.Name  
-            $records[-1]['Rules'][-1]['conditions'] = @()
-            $records[-1]['Rules'][-1]['actions'] = @()
-
+            $actions_to_grab_found = 0
             ForEach ($action in $rule.Actions) {
                 if ($action.Enabled -and ($ACTIONS_TO_GRAB -contains $action.ActionType)) {        
                     $actions_to_grab_found = 1
-                    $s = "type:" + $action.ActionType.toString() + ", recipients:" + 
-                         (($action.Recipients | select -expand Name) -join ';')
-                    $records[-1]['Rules'][-1]["actions"] += , $s
                 }
-            }   
+            }
 
-            if ($actions_to_grab_found -eq 1) {
+            if ($actions_to_grab_found -eq 1) { 
+
+                $records[-1]['Rules'] += , @{}
+                $records[-1]['Rules'][-1]['name'] = $rule.Name  
+                $records[-1]['Rules'][-1]['conditions'] = @()
+                $records[-1]['Rules'][-1]['actions'] = @()
+   
                 ForEach ($condition in $rule.Conditions) {
                     if ($condition.Enabled) { 
                         # https://docs.microsoft.com/en-us/office/vba/api/outlook.olruleconditiontype
@@ -59,6 +56,15 @@ ForEach ($store in $namespace.Stores) {
                         $records[-1]['Rules'][-1]['conditions'] += , $s
                     }
                 }
+
+                ForEach ($action in $rule.Actions) {
+                    if ($action.Enabled -and ($ACTIONS_TO_GRAB -contains $action.ActionType)) { 
+                        $s = "type:" + $action.ActionType.toString() + ", recipients:" + 
+                             (($action.Recipients | select -expand Name) -join ';')
+                        $records[-1]['Rules'][-1]["actions"] += , $s
+                    }
+                }   
+
             }
        
         }
