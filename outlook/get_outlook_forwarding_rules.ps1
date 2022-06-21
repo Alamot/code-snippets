@@ -25,7 +25,9 @@ ForEach ($store in $namespace.Stores) {
     $rules = $store.GetRules() 
 
     ForEach ($rule in $rules) {
-    
+        
+        $actions_to_grab_found = 0
+
         if ($rule.Enabled) {
 
             $records[-1]['Rules'] += , @{}
@@ -33,29 +35,32 @@ ForEach ($store in $namespace.Stores) {
             $records[-1]['Rules'][-1]['conditions'] = @()
             $records[-1]['Rules'][-1]['actions'] = @()
 
-            ForEach ($condition in $rule.Conditions) {
-                if ($condition.Enabled) { 
-                    # https://docs.microsoft.com/en-us/office/vba/api/outlook.olruleconditiontype
-                    $s = "type:" + $condition.ConditionType.toString()
-                    if ("Text" -in $condition.PSobject.Properties.Name) {
-                        $s += ", text:" + $condition.Text;
-                    }
-                    if ("Recipients" -in $condition.PSobject.Properties.Name) {
-                        $s += ", recipients:" +
-                             (($condition.Recipients | select -expand Name) -join ';') 
-                    }
-                    $records[-1]['Rules'][-1]['conditions'] += , $s
-                }
-            }
-
             ForEach ($action in $rule.Actions) {
-                if ($action.Enabled -and ($ACTIONS_TO_GRAB -contains $action.ActionType)) {                        
+                if ($action.Enabled -and ($ACTIONS_TO_GRAB -contains $action.ActionType)) {        
+                    $actions_to_grab_found = 1
                     $s = "type:" + $action.ActionType.toString() + ", recipients:" + 
                          (($action.Recipients | select -expand Name) -join ';')
                     $records[-1]['Rules'][-1]["actions"] += , $s
                 }
             }   
-        
+
+            if ($actions_to_grab_found -eq 1) {
+                ForEach ($condition in $rule.Conditions) {
+                    if ($condition.Enabled) { 
+                        # https://docs.microsoft.com/en-us/office/vba/api/outlook.olruleconditiontype
+                        $s = "type:" + $condition.ConditionType.toString()
+                        if ("Text" -in $condition.PSobject.Properties.Name) {
+                            $s += ", text:" + $condition.Text;
+                        }
+                        if ("Recipients" -in $condition.PSobject.Properties.Name) {
+                            $s += ", recipients:" +
+                                 (($condition.Recipients | select -expand Name) -join ';') 
+                        }
+                        $records[-1]['Rules'][-1]['conditions'] += , $s
+                    }
+                }
+            }
+       
         }
     }
 }
