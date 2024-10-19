@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from __future__ import print_function
 # Author: Alamot
 # Use pymssql >= 1.0.3 (otherwise it doesn't work correctly)
@@ -6,7 +6,7 @@ from __future__ import print_function
 # e.g. UPLOAD myfile.txt C:\temp\myfile.txt
 # If you omit the remote_path it uploads the file on the current working folder.
 # Be aware that pymssql has some serious memory leak issues when the connection fails (see: https://github.com/pymssql/pymssql/issues/512).
-import _mssql
+import pymssql._mssql as _mssql
 import base64
 import shlex
 import sys
