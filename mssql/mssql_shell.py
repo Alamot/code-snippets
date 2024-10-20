@@ -6,7 +6,10 @@ from __future__ import print_function
 # e.g. UPLOAD myfile.txt C:\temp\myfile.txt
 # If you omit the remote_path it uploads the file on the current working folder.
 # Be aware that pymssql has some serious memory leak issues when the connection fails (see: https://github.com/pymssql/pymssql/issues/512).
-import _mssql
+try:
+    import _mssql
+except:
+    from pymssql import _mssql
 import base64
 import shlex
 import sys
