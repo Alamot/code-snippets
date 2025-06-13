@@ -52,7 +52,7 @@ def upload(mssql, stored_cwd, local_path, remote_path):
     with open(local_path, 'rb') as f:
         data = f.read()
         md5sum = hashlib.md5(data).hexdigest()
-        b64enc_data = b"".join(base64.encodestring(data).split()).decode()
+        b64enc_data = b"".join(base64.encodebytes(data).split()).decode()
         
     print("Data length (b64-encoded): "+str(len(b64enc_data)/1024)+"KB")
     for i in tqdm.tqdm(range(0, len(b64enc_data), BUFFER_SIZE), unit_scale=BUFFER_SIZE/1024, unit="KB"):
