@@ -6,10 +6,10 @@
 // Raspberry Pi 4B
 //.equ PERIPH_BASE, 0xFE000000    /*  <--- Uncomment this for Pi 4  */
 
-.equ UART0_BASE, (PERIPH_BASE + 0x201000)
-.equ UART0_DR, (UART0_BASE + 0x00)
-.equ UART0_FR, (UART0_BASE + 0x18)
-.equ TXFF_BIT, (1 << 5)
+.equ UART0_BASE, (PERIPH_BASE + 0x201000)   // UART base address
+.equ UART0_DR, (UART0_BASE + 0x00)          // UART Data Register 
+.equ UART0_FR, (UART0_BASE + 0x18)          // UART Flag Register
+.equ TXFF_BIT, (1 << 5)                     // Transmit FIFO Full bit
 
 
 /*---Code---------------------------------------------------------------------*/
