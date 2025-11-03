@@ -1,0 +1,4 @@
+arm_64bit=1                 # Boot to 64-bit mode
+dtoverlay=pi3-disable-bt    # Disable bluetooth (to free UART)
+enable_uart=1               # Enable UART
+os_check=0                  # Don't check OS compatibity
