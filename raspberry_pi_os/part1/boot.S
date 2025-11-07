@@ -26,7 +26,7 @@
 
 
 /*---Initialized-data---------------------------------------------------------*/
-.section ".rodata"
+.section ".rodata"                    // Read only data section
 .align 2   // ARM instructions needs proper data alignment otherwise they fault.
 hello_msg: .short 14                  // The length of the string (16 bits). 
            .ascii "Hello, world!\n"   // We don't use null-terminated strings.

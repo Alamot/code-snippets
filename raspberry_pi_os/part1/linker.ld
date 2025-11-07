@@ -6,7 +6,7 @@ SECTIONS {
   . = 0x80000; /* The kernel code must start at the address 0x80000 for Raspberry Pi. */
   .text : { *(.text) } :read_execute  /* Code goes here. */
   
-  .rodata : { *(.rodata) } :read_execute /* Initialized read-only data go here. */
+  .rodata : { *(.rodata) } :read_only /* Initialized read-only data go here. */
   
   .data : { *(.data) } :read_write /* Initialized data go here. */
     
@@ -25,8 +25,9 @@ SECTIONS {
   }
 }
 
-/* Permissions */
+/* Define the loadable segments and set their permissions */
 PHDRS { 
   read_execute PT_LOAD FLAGS(5); /* R + X */
-  read_write PT_LOAD FLAGS(6); /* R + W */   
+  read_only    PT_LOAD FLAGS(4); /* R */
+  read_write   PT_LOAD FLAGS(6); /* R + W */   
 }
