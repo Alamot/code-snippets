@@ -33,7 +33,7 @@ Fill_screen:
 ; rax (XY__XY__XY__XY__): X -> Background color, Y -> Character color             ;
 ; rax (__ZZ__ZZ__ZZ__ZZ): ASCII code(s) of character(s) to use to fill the screen ;
 ;*********************************************************************************;
-    mov rdi, [VRAM]
+    mov rdi, [abs VRAM]
     mov rcx, 500 ; 80*25 / 4 = 500 (we set 4 characters each time).
     rep stosq    ; Clear the entire screen.
     ret
@@ -48,14 +48,18 @@ Print:
 ;  r8: x                                                                           ;
 ;  r9: y                                                                           ;
 ;**********************************************************************************;
-    push rsi
     push rax
+    push rcx
+    push rdx
+    push rsi
+    push rdi
     push r8
     push r9
     dec r8
     add r8, r8
     dec r9
-    mov rdi, [VRAM]
+    mov rdi, [abs VRAM]            
+
     push rax
     mov rax, VGA_WIDTH*2
     mul r9
@@ -63,16 +67,20 @@ Print:
     pop rax
     mov cx, word [rsi] ; first 16 bits = the number of characters in the string
     inc rsi
+
    .string_loop: ; print all the characters in the string
         lodsb
         mov al, byte [rsi]
         mov [rdi+r8], ax
-        add rdi, 2
+        add rdi, 2    
     loop .string_loop
     pop r9
     pop r8
-    pop rax
+    pop rdi
     pop rsi
+    pop rdx
+    pop rcx
+    pop rax
     ret
 
 
@@ -83,14 +91,16 @@ Print_hex:
 ; r10: value to be printed                                                         ;
 ;  ah: Color attributes                                                            ;
 ;**********************************************************************************;
-    push r10
+    push rcx
+    push rsi
+    push r10    
     sub rsp, 20         ; make space for the string length (2 bytes) and 18 characters
     mov rsi, rsp
     push rsi            ; store rsi (string address)
     mov [rsi], word 18  ; string length = 17
     mov [rsi+2], word "0x"  
     add rsi, 19         ; point rsi to the end of the string
-    mov ecx, 16        ; loop 16 times (one for each digit)
+    mov ecx, 16         ; loop 16 times (one for each digit)
    .digit:
         push r10             ; store rax
         and r10, 0Fh         ; isolate digit
@@ -108,4 +118,6 @@ Print_hex:
     call Print
     add rsp, 20
     pop r10
+    pop rsi
+    pop rcx
     ret
