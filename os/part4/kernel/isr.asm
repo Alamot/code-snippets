@@ -172,52 +172,52 @@ ISR_systimer:
 ;*****************************************************************************;
 ; System Timer Interrupt Service Routine (IRQ0 mapped to INT 0x20)            ;
 ;*****************************************************************************;
+    inc qword [abs systimer_ticks]
+    inc qword [abs tasktimer_ticks]
+    cmp qword [abs tasktimer_ticks], 1 ; Every how many ticks we want to switch tasks.
+    jle .no_switch
+    cmp [abs num_tasks], 0             ; No tasks to switch
+    je .no_switch
+   
+    ; set tasktimer_ticks to 0
+    mov qword [abs tasktimer_ticks], 0
+    ; In long mode, when an interrupt occurs, the processor pushes in the stack
+    ; the interrupted program's stack pointer (SS:RSP), the RFLAGS, and the
+    ; return pointer (CS:RIP). In order to switch task, we have to replace them.
+    ; Therefore, we remove (pop) them from the stack.
+    pop qword [abs return_address] ; RIP
+    pop qword [abs code_segment]   ; CS
+    pop qword [abs rflags]         ; RFLAGS
+    pop qword [abs stack_pointer]  ; RSP
+    pop qword [abs stack_segment]  ; SS
+    ; We save the current task state in the active task slot.
+    call Save_task_state
+    ; We activate the next task slot
+    inc qword [abs active_task_slot]
+    ; We check if the current task was the last task.
+    mov rax, [abs num_tasks]
+    cmp [abs active_task_slot], rax
+    jnz .load
+    ; If we reach the last task, switch to the first task
+    mov qword [abs active_task_slot], 0
+   .load:
+    ; Load the next task state from the active task slot.
+    call Load_task_state
+    ; We now push back to the stack the values we have loaded for the next task.
+    push qword [abs stack_segment]
+    push qword [abs stack_pointer]
+    push qword [abs rflags]
+    push qword [abs code_segment]
+    push qword [abs return_address] 
+    ; The instruction IRETQ will load these values to the proper registers
+    ; and we will switch to the next task.        
+        
+.no_switch:
     push rax
     mov al, PIC_EOI       ; Send EOI (End of Interrupt) command
     out PIC1_COMMAND, al  
-    pop rax
-    inc qword [systimer_ticks]
-    inc qword [tasktimer_ticks]
-    cmp qword [tasktimer_ticks], 1 ; Every how many ticks we want to switch tasks.
-    jg .switch_task
+    pop rax        
     iretq
-
-   .switch_task:
-        ; set tasktimer_ticks to 0
-        mov qword [tasktimer_ticks], 0
-        ; In long mode, when an interrupt occurs, the processor pushes in the stack
-        ; the interrupted program's stack pointer (SS:RSP), the RFLAGS, and the
-        ; return pointer (CS:RIP). In order to switch task, we have to replace them.
-        ; Therefore, we remove (pop) them from the stack.
-        pop qword [return_address] ; RIP
-        pop qword [code_segment]   ; CS
-        pop qword [rflags]         ; RFLAGS
-        pop qword [stack_pointer]  ; RSP
-        pop qword [stack_segment]  ; SS
-        ; We save the current task state in the active task slot.
-        call Save_task_state
-        ; We activate the next task slot
-        inc qword [active_task_slot]
-        ; We check if the current task was the last task.
-        push rax
-        mov rax, [num_tasks]
-        cmp [active_task_slot], rax
-        pop rax
-        jnz .load
-        ; If we reach the last task, switch to the first task
-        mov qword [active_task_slot], 0
-       .load:
-        ; Load the next task state from the active task slot.
-        call Load_task_state
-        ; We now push back to the stack the values we have loaded for the next task.
-        push qword [stack_segment]
-        push qword [stack_pointer]
-        push qword [rflags]
-        push qword [code_segment]
-        push qword [return_address] 
-        ; The instruction IRETQ will load these values to the proper registers
-        ; and we will switch to the next task.
-        iretq
 
 
 ISR_keyboard:
