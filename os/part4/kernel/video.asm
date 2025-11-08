@@ -65,7 +65,7 @@ Print:
     mul r9
     add r8, rax
     pop rax
-    mov cx, word [rsi] ; first 16 bits = the number of characters in the string
+    movzx rcx, word [rsi]    ; rcx = string length (zero-extend first 16 bits) 
     add rsi, 2
    .string_loop:             ; Print all the characters in the string.
         lodsb                ; al = [rsi], rsi++   
