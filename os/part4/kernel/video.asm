@@ -66,14 +66,12 @@ Print:
     add r8, rax
     pop rax
     mov cx, word [rsi] ; first 16 bits = the number of characters in the string
-    inc rsi
-
-   .string_loop: ; print all the characters in the string
-        lodsb
-        mov al, byte [rsi]
-        mov [rdi+r8], ax
-        add rdi, 2    
-    loop .string_loop
+    add rsi, 2
+   .string_loop:             ; Print all the characters in the string.
+        lodsb                ; al = [rsi], rsi++   
+        mov [rdi+r8], ax     ; Write attributes (ah) + character (al) to VRAM.
+        add rdi, 2           ; Move to next word in VRAM
+    loop .string_loop        ; rcx--, jnz
     pop r9
     pop r8
     pop rdi
