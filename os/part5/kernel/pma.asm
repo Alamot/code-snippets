@@ -3,7 +3,7 @@
 BITS 64
 
 ;---Constants-------------------------------------------------------------------
-FRAME_FACTOR equ 12          ; Used in fast shift operations (instead of divs).
+FRAME_FACTOR equ 12                    ; Used in fast shift operations
 FRAME_SIZE   equ (1 << FRAME_FACTOR)   ; Frame size = 4096
 
 ;---Initialized data------------------------------------------------------------
@@ -139,12 +139,36 @@ PMA_mark_range:
    .fast_mark_bytes:        
     mov rcx, rbx              
     sub rcx, rax               
-    inc rcx              ; rcx = number of remaining frames
-    shr rcx, 3           ; rcx = rcx / 8
+    inc rcx              ; rcx = rbx - rax + 1 = number of remaining frames
+    shr rcx, 3           ; rcx = rcx / 8 = number of bytes to fill
     test rcx, rcx        ; If rcx is 0, no whole bytes remain, go to trail bits
     jz .trail_bits                 
+    call PMA_fast_mark_using_bytes
+    shl rcx, 3
+    add rax, rcx         ; rax = rax + rcx * 8 = next frame index to process
+   .trail_bits:
+    jmp .slow_mark_bits  ; Jump to mark loop        
+   .done:
+    pop rdi
+    pop rsi
+    pop rdx
+    pop rcx
+    pop rbx
+    pop rax
+    ret
+    
+    
+PMA_fast_mark_using_bytes:
+;******************************************************************************;
+; Marks very fast a series of frames (it should be byte-aligned)               ;
+;******************************************************************************;
+; rax: Start frame index                                                       ;
+; rcx: Number of rames
+; r10: 0 (FREE) or 1 (USED)                                                    ;
+;******************************************************************************;
     push rax
     push rcx
+    push rdi
     mov rdi, [abs PMA_bitmap_address] 
     shr rax, 3                      
     add rdi, rax    ; rdi = bitmap base + (frame index / 8)
@@ -154,19 +178,9 @@ PMA_mark_range:
     mov al, 0xFF    ; Value to fill (all 1s = USED)
    .set_free: 
     rep stosb       ; Fill bitmap with al value (0xFF for USED, 0x00 for FREE)
+    pop rdi
     pop rcx
     pop rax    
-    shl rcx, 3
-    add rax, rcx    ; rax = rax + rcx * 8 = next frame index to process
-   .trail_bits:
-    jmp .slow_mark_bits   ; Jump to mark loop        
-   .done:
-    pop rdi
-    pop rsi
-    pop rdx
-    pop rcx
-    pop rbx
-    pop rax
     ret
 
 
