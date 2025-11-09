@@ -58,8 +58,9 @@ PMA_init:
     ; --- PHASE 2: Initialize bitmap and mark everything as USED (1) ---
     mov rdi, [abs PMA_bitmap_address]    ; Destination address (Bitmap start)
     mov rcx, [abs PMA_bitmap_size_bytes] ; Byte count
-    mov al, 0xFF                         ; Value to fill (all 1s = USED)
-    rep stosb                            ; Fill bitmap with 0xFF
+    shr rcx, 3
+    mov rax, 0xFFFFFFFFFFFFFFFF          ; Value to fill (all 1s = USED)
+    rep stosq                            ; Fill bitmap with 1
 
     ; --- PHASE 3: Mark USABLE regions as FREE (0) ---
     mov rcx, [abs e820_mmap_entries]     ; rcx = entry count (loop counter)
@@ -85,13 +86,11 @@ PMA_init:
     mov rdi, kernel_start
     mov rdx, kernel_end
     sub rdx, rdi                  ; rdx = kernel size
-    call PMA_mark_range
-    
+    call PMA_mark_range    
     ; 3. Mark PAGING TABLES as USED
     mov rdi, PAGING_DATA
     mov rdx, 4 * 4096
-    call PMA_mark_range
-    
+    call PMA_mark_range    
     ; 4. Mark BITMAP Storage as USED
     mov rdi, [abs PMA_bitmap_address]
     mov rdx, [abs PMA_bitmap_size_bytes]
@@ -115,29 +114,58 @@ PMA_mark_range:
 ; r10: 0 (FREE) or 1 (USED)                                                    ;
 ;******************************************************************************;
     push rax
+    push rbx
     push rcx
+    push rdx
     push rsi
+    push rdi
     test rdx, rdx             ; Check if length is zero
     jz .done
     ; Calculate start frame index (address / FRAME_SIZE)
     mov rsi, rdi              ; rsi = start address
     shr rsi, FRAME_FACTOR     ; rsi = start frame index
     ; Calculate end address and end frame index
-    lea rax, [rdi + rdx - 1]  ; rax = end address (last byte of range)
-    shr rax, FRAME_FACTOR     ; rax = end frame index
-    ; Calculate number of frames to mark
-    mov rcx, rax              ; rcx = end frame index
-    sub rcx, rsi              ; rcx = end - start frame index
-    inc rcx                   ; rcx = number of frames (inclusive)
-    ; Start marking from the beginning
-    mov rax, rsi              ; rax = current frame index (start frame index)
-.mark_loop:
-    call PMA_mark_frame       ; Mark current frame (rax=frame index, r10=0/1)
-    inc rax                   ; Next frame index
-    loop .mark_loop
-.done:
-    pop rsi
+    lea rbx, [rdi + rdx - 1]  ; rbx = end address (last byte of range)
+    shr rbx, FRAME_FACTOR     ; rbx = end frame index
+    mov rax, rsi              ; rax = start frame index
+   .slow_mark_bits:
+        call PMA_mark_frame   ; Mark current frame (rax=frame index, r10=0/1)
+        inc rax               ; Next frame index
+        cmp rax, rbx          ; Did we reach the end?
+        ja .done             
+        test rax, 7           ; Is frame index divisible by 8?
+        jz .fast_mark_bytes   ; If yes, start of a byte reached, go for speed
+        jmp .slow_mark_bits        
+   .fast_mark_bytes:        
+    mov rcx, rbx              
+    sub rcx, rax               
+    inc rcx              ; rcx = number of remaining frames
+    shr rcx, 3           ; rcx = rcx / 8
+    test rcx, rcx        ; If rcx is 0, no whole bytes remain, go to trail bits
+    jz .trail_bits                 
+    push rax
+    push rcx
+    mov rdi, [abs PMA_bitmap_address] 
+    shr rax, 3                      
+    add rdi, rax    ; rdi = bitmap base + (frame index / 8)
+    xor rax, rax    ; rax = 0
+    test r10, r10   ; Check r10 to decide the AL fill value 
+    jz .set_free
+    mov al, 0xFF    ; Value to fill (all 1s = USED)
+   .set_free: 
+    rep stosb       ; Fill bitmap with al value (0xFF for USED, 0x00 for FREE)
     pop rcx
+    pop rax    
+    shl rcx, 3
+    add rax, rcx    ; rax = rax + rcx * 8 = next frame index to process
+   .trail_bits:
+    jmp .slow_mark_bits   ; Jump to mark loop        
+   .done:
+    pop rdi
+    pop rsi
+    pop rdx
+    pop rcx
+    pop rbx
     pop rax
     ret
 
@@ -152,13 +180,13 @@ PMA_mark_frame:
     push rax
     push rcx
     push rdx
-    mov rcx, rax          ; rcx = rax = frame index
-    shr rax, 3            ; Byte offset = frame_index / 8
-    and cl, 7             ; Bit position = frame_index % 8
+    mov rcx, rax               ; rcx = rax = frame index
+    shr rax, 3                 ; Byte offset = frame_index / 8
+    and cl, 7                  ; Bit position = frame_index % 8
     mov dl, 1
-    shl dl, cl            ; dl = 1 << bit_position
+    shl dl, cl                 ; dl = 1 << bit_position
     mov rcx, [abs PMA_bitmap_address]
-    test r10, r10         ; Check r10: 0 -> Mark FREE, 1 -> Mark USED
+    test r10, r10              ; Check r10: 0 -> Mark FREE, 1 -> Mark USED
     jz .unset
     or byte [rcx + rax], dl    ; Set bit (Mark USED)
     jmp .done
@@ -230,9 +258,15 @@ PMA_free_frame:
 ;------------------------------------------------------------------------------;
 ; rdi = Physical Address of the frame to free                                  ;
 ;******************************************************************************;
+    test rdi, rdi
+    jz .done
+    push rax
     push r10
-    mov r10, 0            ; r10 = 0 (set frame as FREE)
-    mov rdx, FRAME_SIZE
-    call PMA_mark_range
+    mov r10, 0               ; r10 = 0 (set frame as FREE)
+    mov rax, rdi
+    shr rax, FRAME_FACTOR      
+    call PMA_mark_frame   
     pop r10
+    pop rax
+   .done:    
     ret
