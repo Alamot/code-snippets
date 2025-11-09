@@ -3,8 +3,12 @@ BITS 16
 ;---Define----------------------------------------------------------------------
 %define PAGE_PRESENT (1 << 0)
 %define PAGE_WRITE   (1 << 1)
-%define CODE_SEG      0x0008
 %define PAGING_DATA   0x9000
+; RPL (Requestor Privilege Level - Bits 1-0): 0 is highest, 3 is lowest 
+; TI (Table Indicator - Bit 2): 0 => GDT, 1 => LDT
+; Index (Bits 15-3): The index of the segment descriptor within the GDT.                   
+; Segment Selector = (Index * 8) + (TI * 4) + RPL = (1 * 8) + (0 * 4) + 0 = 8     
+%define CODE_SEG      0x0008
 
 ;---Initialized data------------------------------------------------------------
 
