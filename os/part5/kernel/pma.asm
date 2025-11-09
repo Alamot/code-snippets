@@ -3,11 +3,11 @@
 BITS 64
 
 ;---Constants-------------------------------------------------------------------
-BITMAP_ADDR  equ 0x14000     ; Physical address for the bitmap storage.
 FRAME_FACTOR equ 12          ; Used in fast shift operations (instead of divs).
 FRAME_SIZE   equ (1 << FRAME_FACTOR)   ; Frame size = 4096
 
 ;---Initialized data------------------------------------------------------------
+PMA_bitmap_address dq 0x100000 ; Physical address of the bitmap (default at 1MB)
 PMA_max_frames dq 0
 PMA_bitmap_size_bytes dq 0
 PMA_highest_address dq 0
@@ -42,7 +42,11 @@ PMA_init:
         loop .find_max_loop
     mov rax, r14                       ; r14 = highest physical address + 1
     sub rax, 1                         ; rax = highest physical address
-    mov [abs PMA_highest_address], rax ; Store highest physical address
+    mov [abs PMA_highest_address], rax ; Store highest physical address    
+    cmp rax, 0x100000                  ; Check if we have more than 1MB memory
+    jg .RAM_is_greater_than_1MB        ; If not...
+    mov qword [abs PMA_bitmap_address], 0x20000 ; Move PMA_bitmap_address lower
+.RAM_is_greater_than_1MB:
     shr rax, FRAME_FACTOR              ; Max frame index = address / FRAME_SIZE
     inc rax                            ; rax = Total number of frames
     mov [abs PMA_max_frames], rax      ; Store total number of frames
@@ -52,7 +56,7 @@ PMA_init:
     mov [abs PMA_bitmap_size_bytes], rax ; Store bitmap size
 
     ; --- PHASE 2: Initialize bitmap and mark everything as USED (1) ---
-    mov rdi, BITMAP_ADDR                 ; Destination address (Bitmap start)
+    mov rdi, [abs PMA_bitmap_address]    ; Destination address (Bitmap start)
     mov rcx, [abs PMA_bitmap_size_bytes] ; Byte count
     mov al, 0xFF                         ; Value to fill (all 1s = USED)
     rep stosb                            ; Fill bitmap with 0xFF
@@ -83,7 +87,7 @@ PMA_init:
     sub rdx, rdi                  ; rdx = kernel size
     call PMA_mark_range
     ; 3. Mark Bitmap Storage as USED
-    mov rdi, BITMAP_ADDR
+    mov rdi, [abs PMA_bitmap_address]
     mov rdx, [abs PMA_bitmap_size_bytes]
     call PMA_mark_range
 
@@ -147,13 +151,14 @@ PMA_mark_frame:
     and cl, 7             ; Bit position = frame_index % 8
     mov dl, 1
     shl dl, cl            ; dl = 1 << bit_position
+    mov rcx, [abs PMA_bitmap_address]
     test r10, r10         ; Check r10: 0 -> Mark FREE, 1 -> Mark USED
     jz .unset
-    or byte [BITMAP_ADDR + rax], dl    ; Set bit (Mark USED)
+    or byte [rcx + rax], dl    ; Set bit (Mark USED)
     jmp .done
 .unset:
     not dl                             ; dl = ~(1 << bit_position)
-    and byte [BITMAP_ADDR + rax], dl   ; Clear bit (Mark Free)
+    and byte [rcx + rax], dl   ; Clear bit (Mark Free)
 .done:
     pop rdx
     pop rcx
@@ -174,7 +179,7 @@ PMA_alloc_frame:
     push rdi
     push r10
     mov rcx, [abs PMA_bitmap_size_bytes]   ; rcx = total bytes in bitmap
-    mov rsi, BITMAP_ADDR                   ; rsx = bitmap base address
+    mov rsi, [abs PMA_bitmap_address]      ; rsx = bitmap base address
     xor rbx, rbx                           ; rbx = 0 (Current byte offset)
 .search_byte_loop:
     cmp rbx, rcx                           ; Did we reach the end?

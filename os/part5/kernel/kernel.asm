@@ -64,6 +64,7 @@ Kernel:
 
     ; Initialize the Physical Memory Allocator (PMA).
     call PMA_init
+    
     ; Print PMA info
     mov ah, (VGA_COLOR_BLACK << 4) | VGA_COLOR_WHITE
     mov r8, 1     ; x = 1
@@ -115,7 +116,7 @@ Kernel:
         mov ah, (VGA_COLOR_BLACK << 4) | VGA_COLOR_WHITE
         mov r8, 4     ; x = 4
         mov r9, 15    ; y = 15
-        mov rsi, BITMAP_ADDR
+        mov rsi, [abs PMA_bitmap_address]
         call Print_PMA_frame_bitmap    
     jmp Task1.loop
     
