@@ -2,11 +2,16 @@
 
 BITS 16
 
-;---Define----------------------------------------------------------------------
-%define PAGE_PRESENT (1 << 0)
-%define PAGE_WRITE   (1 << 1)
-%define CODE_SEG      0x0008
-%define PAGING_DATA   0xF000
+;---Constants-------------------------------------------------------------------
+PAGE_PRESENT equ (1 << 0)   ; Bit 0 => Page present
+PAGE_WRITE   equ (1 << 1)   ; Bit 1 => Page writable
+PAGE_PS      equ (1 << 7)   ; Bit 7 => 2MB page size, ignore PT
+PAGING_DATA  equ 0xF000     ; Address to store the paging tables
+; RPL (Requestor Privilege Level - Bits 1-0): 0 is highest, 3 is lowest 
+; TI (Table Indicator - Bit 2): 0 => GDT, 1 => LDT
+; Index (Bits 15-3): The index of the segment descriptor within the GDT.                   
+; Segment Selector = (Index * 8) + (TI * 4) + RPL = (1 * 8) + (0 * 4) + 0 = 8                  
+CODE_SEG equ 8
 
 ;---Initialized data------------------------------------------------------------
 
@@ -33,48 +38,40 @@ GDT:
 
 ;---Code------------------------------------------------------------------------
 Prepare_paging:
-;*******************************************************************************************;
-; Prepare paging                                                                            ;
-;-------------------------------------------------------------------------------------------;
-; ES:EDI Should point to a valid page-aligned 16KiB buffer, for the PML4, PDPT, PD and a PT.;
-; SS:ESP Should point to memory that can be used as a small (1 uint32_t) stack.             ;
-;*******************************************************************************************;
-    mov edi, PAGING_DATA ; Point edi to a free space to create the paging structures.
-
-    ; Zero out the 16KiB buffer. Since we are doing a rep stosd, count should be bytes/4.   
-    push di         ; REP STOSD alters DI.
-    mov ecx, 0x1000
+;******************************************************************************;
+; Prepare paging                                                               ;
+;------------------------------------------------------------------------------;
+; ES:EDI Should point to a valid 4096-aligned 16KiB buffer.                    ;
+; SS:ESP Should point to memory that can be used as a small stack.             ;
+;******************************************************************************;
+    mov edi, PAGING_DATA     ; Point to 16KiB buffer for the paging structures.
+    ; Zero out the entire 16KiB buffer (PML4, PDPT, PD, unused PT)
+    push di                  ; Store di (rep stosd alters di).
+    mov ecx, 0x1000          ; Count should be 16384 / 4 = 4096 dwords
     xor eax, eax
     cld
     rep stosd
-    pop di          ; Get DI back.
- 
-    ; Build the Page Map Level 4. ES:DI points to the Page Map Level 4 table.
-    lea eax, [es:di + 0x1000]         ; EAX = Address of the Page Directory Pointer Table.
-    or eax, PAGE_PRESENT | PAGE_WRITE ; OR EAX with the flags (present flag, writable flag).
-    mov [es:di], eax                  ; Store the value of EAX as the first PML4E.
-
-     ; Build the Page Directory Pointer Table.
-    lea eax, [es:di + 0x2000]         ; Put the address of the Page Directory in to EAX.
-    or eax, PAGE_PRESENT | PAGE_WRITE ; OR EAX with the flags (present flag, writable flag).
-    mov [es:di + 0x1000], eax         ; Store the value of EAX as the first PDPTE.
-
-     ; Build the Page Directory.
-    lea eax, [es:di + 0x3000]          ; Put the address of the Page Table in to EAX.
-    or eax, PAGE_PRESENT | PAGE_WRITE  ; OR EAX with the flags (present flag, writable flag).
-    mov [es:di + 0x2000], eax          ; Store to value of EAX as the first PDE.
-
-    push di                            ; Save DI for the time being.
-    lea di, [di + 0x3000]              ; Point DI to the page table.
-    mov eax, PAGE_PRESENT | PAGE_WRITE ; Move the flags into EAX - and point it to 0x0000.
-
-    ; Build the Page Table.
-    .LoopPageTable:
-        mov [es:di], eax
-        add eax, 0x1000
-        add di, 8
-        cmp eax, 0x200000               ; If we did all 2MiB, end.
-        jb .LoopPageTable
-
-    pop di                              ; Restore DI.
+    pop di                   ; Restore di
+    ; Build the PML4 (Page Map Level 4): PML4[0] -> PDPT
+    lea eax, [es:di + 0x1000]            ; eax = address of the PDPT
+    or eax, PAGE_PRESENT | PAGE_WRITE    ; Set the flags (present and writable)
+    mov [es:di], eax                     ; PML4E[0] = eax
+    ; Build the PDPT (Page Directory Pointer Table): PDPT[0] -> PD
+    lea eax, [es:di + 0x2000]           ; eax = address of the PD
+    or  eax, PAGE_PRESENT | PAGE_WRITE  ; Set the flags (present and writable)
+    mov [es:di + 0x1000], eax           ; PDPT[0] = eax  
+    ; Fill the PD (Page Directory) with 512 entries (each maps a 2 MiB page)
+    lea di, [di + 0x2000]       ; DI now points to start of Page Directory
+    xor ebx, ebx                ; EBX = page index (0 to 511)
+    mov ecx, 512                ; Number of 2 MiB pages to map
+.MapLoop:
+    mov eax, ebx                ; Compute physical address: ebx * 0x200000          
+    shl eax, 21                 ; 2^21 = 0x200000 = 2 MiB    
+    ; Set flags: Present, Writable, PS=1 (2 MiB page)
+    or eax, PAGE_PRESENT | PAGE_WRITE | PAGE_PS 
+    mov [es:di], eax            ; Store low 32 bits (each entry is 8 bytes)
+    mov [es:di + 4], dword 0    ; Store high 32 bits (0 => identity mapping)
+    add di, 8                   ; Advance to next entry 
+    inc ebx                     ; Increment index
+    loop .MapLoop
     ret

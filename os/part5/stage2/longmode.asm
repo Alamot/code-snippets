@@ -30,7 +30,7 @@ Enter_long_mode:
 ;********************************************************************;
 ; Enter long mode                                                    ;
 ;********************************************************************;
-    mov edi, PAGING_DATA; Point edi at the PAGING_DATA.
+    mov edi, PAGING_DATA ; Point edi at the PAGING_DATA.
     mov eax, 10100000b  ; Set the PAE and PGE bit.
     mov cr4, eax
     mov edx, edi        ; Point CR3 at the PML4.

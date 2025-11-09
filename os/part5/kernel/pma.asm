@@ -28,7 +28,7 @@ PMA_init:
     xor r14, r14                       ; r14 = 0 (will save the highest address)
     mov rcx, [abs e820_mmap_entries]   ; rcx = number of entries (loop counter)
     mov rsi, e820_mmap_buffer          ; rsi = E820 map address
-    .find_max_loop:
+   .find_max_loop:
         mov rax, [rsi]                 ; Read current E820 entry base address
         mov rbx, [rsi + 8]             ; Read current E820 entry length
         cmp dword [rsi + 16], 1        ; Check if this is usable RAM (Type 1)
@@ -65,7 +65,7 @@ PMA_init:
     mov rcx, [abs e820_mmap_entries]     ; rcx = entry count (loop counter)
     mov rsi, e820_mmap_buffer            ; rsi = E820 map address
     mov r10, 0                           ; r10 = 0 (set frame as free)
-    .mark_free_loop:
+   .mark_free_loop:
         cmp dword [rsi + 16], 1          ; Check if entry is USABLE RAM (Type 1)
         jne .next_entry_mark             ; If not, move to next entry
         mov rdi, [rsi]                   ; rdi = E820 entry base address
@@ -86,7 +86,13 @@ PMA_init:
     mov rdx, kernel_end
     sub rdx, rdi                  ; rdx = kernel size
     call PMA_mark_range
-    ; 3. Mark Bitmap Storage as USED
+    
+    ; 3. Mark PAGING TABLES as USED
+    mov rdi, PAGING_DATA
+    mov rdx, 4 * 4096
+    call PMA_mark_range
+    
+    ; 4. Mark BITMAP Storage as USED
     mov rdi, [abs PMA_bitmap_address]
     mov rdx, [abs PMA_bitmap_size_bytes]
     call PMA_mark_range
