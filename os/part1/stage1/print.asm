@@ -21,11 +21,11 @@ Real_mode_print:
     push si
     mov cx, word [si] ; first 16 bits = the number of characters in the string
     add si, 2
-    .string_loop:     ; print all the characters in the string
+   .string_loop:     ; print all the characters in the string
         lodsb
         mov ah, 0eh
         int 10h
-    loop .string_loop, cx
+        loop .string_loop, cx
     pop si
     pop cx
     pop ax
