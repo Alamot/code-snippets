@@ -124,7 +124,7 @@ def main():
     # Print special users
     for key in special_users.keys():
         for x in special_users[key]:            
-            if any(group in oids[x[1]][args.name] for group in POWERFUL_GROUPS):
+            if any(group in oids[x[1]]["name"] for group in POWERFUL_GROUPS):
                 continue            
             print(key + ":", oids[x[1]][args.name], "->", x[0])              
             
