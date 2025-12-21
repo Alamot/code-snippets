@@ -23,4 +23,3 @@ Kernel_entrypoint:
  
    .halt: hlt 
     jmp .halt ; Infinite loop.
-

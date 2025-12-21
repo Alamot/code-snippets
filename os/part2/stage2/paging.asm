@@ -4,9 +4,9 @@ BITS 16
 
 ;---Constants-------------------------------------------------------------------
 ; Paging flag bits
-PAGE_PRESENT equ (1 << 0)               ; Bit 0 => Page present
-PAGE_WRITE   equ (1 << 1)               ; Bit 1 => Page writable
-PAGE_HUGE_PS equ (1 << 7)               ; Bit 7 => 2MB page size, ignore PT
+PAGE_PRESENT    equ (1 << 0)               ; Bit 0 => Page present
+PAGE_WRITE      equ (1 << 1)               ; Bit 1 => Page writable
+PAGE_LARGE_SIZE equ (1 << 7)               ; Bit 7 => 2MB page size, ignore PT
 
 ; Addresses to store the paging structures
 PML4         equ 0xB000
@@ -65,8 +65,8 @@ Prepare_paging:
 ; SS:ESP Should point to memory that can be used as a small stack.             ;
 ;******************************************************************************;
   
-    ; Zero out the entire 20KiB buffer (PML4, PDPT, PD, unused PT)
-    mov edi, PML4            ; Point to 16KiB buffer for the paging structures.
+    ; Zero out the 20KiB buffer (PML4, PDPT_LOW, PD_LOW, PDPT_HIGH, PD_HIGH)
+    mov edi, PML4            ; Point to 20KiB buffer for the paging structures.
     push di                  ; Store di (rep stosd alters di).
     mov ecx, 5*0x1000/4      ; Count should be 5*4096/4 = 5120 dwords
     xor eax, eax             ; eax = 0
@@ -84,9 +84,9 @@ Prepare_paging:
     or  eax, PAGE_PRESENT | PAGE_WRITE   ; Set the flags (present and writable)
     mov [PDPT_LOW], eax                  ; PDPT_LOW[0] = eax  
     ; Fill the PD_LOW (Page Directory) with entries (each maps a 2 MiB page)
-    mov eax, 0                                       ; eax = 0 (0-2MiB identity)
-    or eax, PAGE_PRESENT | PAGE_WRITE | PAGE_HUGE_PS ; Set flags (2MiB page)
-    mov [PD_LOW], eax                                ; PD_LOW[0] = eax 
+    mov eax, 0                                          ; 0-2MiB (identity)
+    or eax, PAGE_PRESENT | PAGE_WRITE | PAGE_LARGE_SIZE ; Set flags (2MiB page)
+    mov [PD_LOW], eax                                   ; PD_LOW[0] = eax 
     ; ...
     
     ; ************************ High-half kernel mapping ************************
@@ -104,7 +104,7 @@ Prepare_paging:
     mov ecx, 512                        ; Fill 512 entries (i.e. map 1 GiB)
    .MapLoop:        
         ; Set flags: Present, Writable, 2 MiB page
-        or eax, PAGE_PRESENT | PAGE_WRITE | PAGE_HUGE_PS
+        or eax, PAGE_PRESENT | PAGE_WRITE | PAGE_LARGE_SIZE
         mov [di], eax                   ; Store low 32 bits (entry is 8 bytes) 
         mov [di + 4], dword 0           ; Store high 32 bits 
         add di, 8                       ; Advance to next PD_HIGH entry 
