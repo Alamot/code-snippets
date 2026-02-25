@@ -43,6 +43,9 @@ def get_epub_cover(epub_path):
         t = etree.fromstring(z.read(rootfile_path))
 
         cover_href = None
+       
+        cover_page_href = ''
+       
         try:
             # For EPUB 2.0, we use xpath() to find a <meta> 
             # named "cover" and get the attribute "content":
@@ -122,9 +125,15 @@ def get_epub_cover(epub_path):
 
         # In order to get the full path for the cover image,
         # we have to join rootfile_path and cover_href:
-        cover_path = os.path.join(os.path.dirname(rootfile_path), cover_href)
+
+# change to FIX cover in pathroot or in tag IMG with relative path (add missing cover_page_href init)       
+       #        cover_path = os.path.join(os.path.dirname(rootfile_path), cover_href)
+        path_dir_file = os.path.dirname(rootfile_path)
+        path_dir_cover = os.path.dirname(cover_page_href)
+        cover_path = os.path.normpath(os.path.join(path_dir_file, path_dir_cover, cover_href))
+
         print("Path of cover image found: " + cover_path)                
-                
+
         # We return the image
         return z.open(cover_path)
 
