@@ -176,7 +176,7 @@ ISR_systimer:
     inc qword [abs tasktimer_ticks]
     cmp qword [abs tasktimer_ticks], 1 ; Every how many ticks we want to switch tasks.
     jle .no_switch
-    cmp [abs num_tasks], 0             ; No tasks to switch
+    cmp qword [abs num_tasks], 0       ; No tasks to switch
     je .no_switch
    
     ; set tasktimer_ticks to 0
