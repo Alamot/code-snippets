@@ -71,8 +71,8 @@ def get_epub_cover(epub_path):
             pass
         
         if not cover_href:
-            # For EPUB 3.0, We use xpath to find the <item> (in <manifest>) that
-            # has properties='cover-image' and get the attribute "href":
+            # For EPUB 3.0, the properties attribute is a space-separated list;
+            # find the <item> (in <manifest>) containing the 'cover-image' token.
             '''
             <manifest>
               ...
@@ -81,7 +81,7 @@ def get_epub_cover(epub_path):
             </manifest>
             '''
             try:
-                cover_href = t.xpath("//opf:manifest/opf:item[@properties='cover-image']",
+                cover_href = t.xpath("//opf:manifest/opf:item[contains(concat(' ', normalize-space(@properties), ' '), ' cover-image ')]",
                                      namespaces=namespaces)[0].get("href")
             except IndexError:
                 pass
